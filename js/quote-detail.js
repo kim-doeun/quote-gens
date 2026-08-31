@@ -211,9 +211,69 @@ function renderServiceSection(items, taxRate) {
   </div>`;
 }
 
+/* 03. 기타 품목 섹션 렌더 (하드웨어/3rd-party S/W/외주/기타) */
+function renderMiscSection(items, taxRate) {
+  if (!items.length) return '';
+
+  const rows = items.map(item => `
+    <tr>
+      <td class="border border-slate-300 font-semibold text-slate-800 bg-violet-50" style="vertical-align:top;">${item.name || '-'}</td>
+      <td class="border border-slate-300" style="vertical-align:top;">
+        <p class="text-[11px] text-slate-600 whitespace-pre-line leading-relaxed">${nl2br(item.description)}</p>
+      </td>
+      <td class="border border-slate-300 text-center">${item.classification || '-'}</td>
+      <td class="border border-slate-300 text-center whitespace-nowrap">${formatNumber(item.quantity)}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_price ? formatCurrency(item.list_price) : '-'}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_amount ? formatCurrency(item.list_amount) : '-'}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.unit_price ? formatCurrency(item.unit_price) : '-'}</td>
+      <td class="border border-slate-300 text-right font-semibold whitespace-nowrap">${item.amount ? formatCurrency(item.amount) : '-'}</td>
+      <td class="border border-slate-300 text-center" style="vertical-align:top;">${item.remark || '-'}</td>
+    </tr>
+  `).join('');
+
+  const subtotal = items.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+  const withTax = Math.round(subtotal * (1 + (taxRate || 0) / 100));
+
+  return `
+  <div class="mb-8">
+    <h3 class="text-lg font-extrabold text-slate-800 mb-3">03. 기타 품목</h3>
+    <div class="table-wrap">
+      <table class="w-full text-[13px] border border-slate-300" style="border-collapse:collapse;">
+        <thead>
+          <tr class="bg-sky-50 text-slate-600">
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:12%;">항 목</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:28%;">설명</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:6%;">구분</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:5%;">수량<br>(Q)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자단가<br>(LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자금액<br>(Q*LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안단가<br>(P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안금액<br>(Q*P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:9%;">비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+        <tfoot>
+          <tr class="bg-emerald-50">
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">기타 품목 제안 금액 (VAT 제외)</td>
+            <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(subtotal)}</td>
+          </tr>
+          <tr class="bg-emerald-50">
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">기타 품목 제안 금액 (VAT 포함)</td>
+            <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(withTax)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
 function renderQuoteDocument(q, items) {
   const licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)');
   const serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)');
+  const miscItems = items.filter(i => i.item_type === '기타(HW/3rd-party 등)');
   const taxRate = q.tax_rate || 0;
 
   document.getElementById('quote-content').innerHTML = `
@@ -284,6 +344,7 @@ function renderQuoteDocument(q, items) {
 
     ${renderLicenseSection(licenseItems, taxRate)}
     ${renderServiceSection(serviceItems, taxRate)}
+    ${renderMiscSection(miscItems, taxRate)}
 
     <div class="flex justify-end mb-8">
       <div class="w-full md:w-96 rounded-xl overflow-hidden border-2 border-slate-800">

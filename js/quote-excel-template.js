@@ -347,6 +347,7 @@ async function buildQuoteWorkbook(quote, items) {
 
   const licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)');
   const serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)');
+  const miscItems = items.filter(i => i.item_type === '기타(HW/3rd-party 등)');
   const taxRate = Number(quote.tax_rate) || 0;
 
   let row = 1;
@@ -384,6 +385,23 @@ async function buildQuoteWorkbook(quote, items) {
         Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
       ],
       subtotalLabel: '개발비 제안금액',
+      taxRate,
+    });
+    row += 1;
+  }
+
+  if (miscItems.length) {
+    row = buildItemSection(sheet, row, {
+      title: '03. 기타 품목',
+      items: miscItems,
+      headerLabels: ['항목', '설명', '구분', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
+      numFmts: [null, null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
+      rowMapper: item => [
+        item.name || '-', item.description || '-', item.classification || '-',
+        Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
+        Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
+      ],
+      subtotalLabel: '기타 품목 제안금액',
       taxRate,
     });
     row += 1;

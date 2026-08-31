@@ -6,9 +6,12 @@
 
 let licenseItems = [];
 let serviceItems = [];
+let miscItems = [];
 let productsCache = [];
 let ratesCache = [];
 let customersCache = [];
+
+const MISC_CLASSIFICATION_OPTIONS = ['하드웨어', '3rd-party S/W', '외주', '기타'];
 
 async function initQuoteNewPage() {
   const issueInput = document.getElementById('issue-date');
@@ -24,6 +27,7 @@ async function initQuoteNewPage() {
   bindEvents();
   renderLicenseTable();
   renderServiceTable();
+  renderMiscTable();
   updateSummary();
 }
 
@@ -113,6 +117,7 @@ function bindEvents() {
 
   document.getElementById('btn-add-license').addEventListener('click', openLicenseModal);
   document.getElementById('btn-add-service').addEventListener('click', openServiceModal);
+  document.getElementById('btn-add-misc').addEventListener('click', addMiscItem);
   document.getElementById('tax-rate').addEventListener('input', updateSummary);
 
   // 라이선스 모달: 소비자단가/할인율/제안단가 연동
@@ -355,6 +360,78 @@ function renderServiceTable() {
   `).join('');
 }
 
+/* ---------------- 03. 기타 품목 ----------------
+   S/W 라이선스(products)나 개발비(labor_rates)처럼 미리 등록된 카탈로그가
+   없는 하드웨어/3rd-party S/W/외주 등의 품목을 견적서 발급 시 필요할 때마다
+   바로 추가하는 섹션입니다. 별도 DB 테이블/관리 화면 없이, "품목 추가" 클릭 시
+   빈 행이 표에 즉시 추가되고 표 안에서 바로 값을 입력/수정합니다. */
+function addMiscItem() {
+  miscItems.push({
+    id: uid('misc'),
+    name: '',
+    classification: MISC_CLASSIFICATION_OPTIONS[0],
+    description: '',
+    remark: '',
+    quantity: 1,
+    list_price: 0,
+    list_amount: 0,
+    unit_price: 0,
+    amount: 0,
+  });
+  renderMiscTable();
+  updateSummary();
+}
+
+function removeMiscItem(itemId) {
+  miscItems = miscItems.filter(i => i.id !== itemId);
+  renderMiscTable();
+  updateSummary();
+}
+
+function updateMiscField(itemId, field, value) {
+  const item = miscItems.find(i => i.id === itemId);
+  if (!item) return;
+  if (['quantity', 'list_price', 'unit_price'].includes(field)) {
+    item[field] = Number(value) || 0;
+  } else {
+    item[field] = value;
+  }
+  item.list_amount = Math.round(item.quantity * item.list_price);
+  item.amount = Math.round(item.quantity * item.unit_price);
+  renderMiscTable();
+  updateSummary();
+}
+
+function renderMiscTable() {
+  const tbody = document.getElementById('misc-body');
+  const noMsg = document.getElementById('no-misc-msg');
+
+  if (!miscItems.length) {
+    tbody.innerHTML = '';
+    noMsg.classList.remove('hidden');
+    return;
+  }
+  noMsg.classList.add('hidden');
+
+  tbody.innerHTML = miscItems.map(item => `
+    <tr>
+      <td><input type="text" class="input" value="${escapeAttr(item.name)}" placeholder="예: 문서 스캐너" onchange="updateMiscField('${item.id}','name', this.value)"></td>
+      <td><textarea class="input" style="min-height:1.9rem;" rows="1" placeholder="설명" onchange="updateMiscField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
+      <td>
+        <select class="input" onchange="updateMiscField('${item.id}','classification', this.value)">
+          ${MISC_CLASSIFICATION_OPTIONS.map(o => `<option value="${o}" ${item.classification === o ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>
+      </td>
+      <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateMiscField('${item.id}','quantity', this.value)"></td>
+      <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateMiscField('${item.id}','list_price', this.value)"></td>
+      <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateMiscField('${item.id}','unit_price', this.value)"></td>
+      <td class="font-semibold whitespace-nowrap text-right">${formatCurrency(item.amount)}</td>
+      <td><input type="text" class="input" value="${escapeAttr(item.remark)}" onchange="updateMiscField('${item.id}','remark', this.value)"></td>
+      <td><button onclick="removeMiscItem('${item.id}')" class="btn-ghost btn text-rose-500" style="padding:0.2rem 0.35rem;"><i class="fa-solid fa-trash"></i></button></td>
+    </tr>
+  `).join('');
+}
+
 function escapeAttr(str) {
   return (str || '').replace(/"/g, '&quot;');
 }
@@ -367,7 +444,8 @@ function updateSummary() {
   const licenseSubtotal = licenseItems.reduce((sum, i) => sum + i.amount, 0);
   const licenseListSubtotal = licenseItems.reduce((sum, i) => sum + i.list_amount, 0);
   const serviceSubtotal = serviceItems.reduce((sum, i) => sum + i.amount, 0);
-  const subtotal = licenseSubtotal + serviceSubtotal;
+  const miscSubtotal = miscItems.reduce((sum, i) => sum + i.amount, 0);
+  const subtotal = licenseSubtotal + serviceSubtotal + miscSubtotal;
   const taxRate = Number(document.getElementById('tax-rate').value) || 0;
   const taxAmount = Math.round(subtotal * (taxRate / 100));
   const total = subtotal + taxAmount;
@@ -379,14 +457,16 @@ function updateSummary() {
 
   document.getElementById('license-subtotal-view').textContent = formatCurrency(licenseSubtotal);
   document.getElementById('service-subtotal-view').textContent = formatCurrency(serviceSubtotal);
+  document.getElementById('misc-subtotal-view').textContent = formatCurrency(miscSubtotal);
   document.getElementById('summary-license').textContent = formatCurrency(licenseSubtotal);
   document.getElementById('summary-service').textContent = formatCurrency(serviceSubtotal);
+  document.getElementById('summary-misc').textContent = formatCurrency(miscSubtotal);
   document.getElementById('summary-discount-rate').textContent = `${discountRate.toFixed(1)}%`;
   document.getElementById('summary-subtotal').textContent = formatCurrency(subtotal);
   document.getElementById('summary-tax').textContent = formatCurrency(taxAmount);
   document.getElementById('summary-total').textContent = formatCurrency(total);
 
-  return { licenseSubtotal, serviceSubtotal, subtotal, taxRate, taxAmount, total };
+  return { licenseSubtotal, serviceSubtotal, miscSubtotal, subtotal, taxRate, taxAmount, total };
 }
 
 /* ---------------- 저장 ---------------- */
@@ -407,8 +487,12 @@ async function saveQuote() {
     showToast('견적담당(영업대표) 이름을 입력해주세요.', 'error');
     return;
   }
-  if (!licenseItems.length && !serviceItems.length) {
-    showToast('S/W 라이선스 또는 개발비 항목을 1개 이상 추가해주세요.', 'error');
+  if (!licenseItems.length && !serviceItems.length && !miscItems.length) {
+    showToast('S/W 라이선스, 개발비 또는 기타 품목을 1개 이상 추가해주세요.', 'error');
+    return;
+  }
+  if (miscItems.some(i => !i.name.trim())) {
+    showToast('03. 기타 품목의 항목명을 모두 입력해주세요.', 'error');
     return;
   }
 
@@ -417,7 +501,7 @@ async function saveQuote() {
   btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;"></div> 저장 중...';
 
   try {
-    const { licenseSubtotal, serviceSubtotal, subtotal, taxRate, taxAmount, total } = updateSummary();
+    const { licenseSubtotal, serviceSubtotal, miscSubtotal, subtotal, taxRate, taxAmount, total } = updateSummary();
     const quoteNumber = await generateQuoteNumber();
 
     const quotePayload = {
@@ -439,6 +523,7 @@ async function saveQuote() {
       tax_rate: taxRate,
       license_subtotal: licenseSubtotal,
       service_subtotal: serviceSubtotal,
+      misc_subtotal: miscSubtotal,
       subtotal, tax_amount: taxAmount, total,
       payment_terms: document.getElementById('payment-terms').value.trim(),
       notes: document.getElementById('notes').value.trim(),
@@ -477,7 +562,22 @@ async function saveQuote() {
       sort_order: idx + 1
     }));
 
-    await Promise.all([...licensePayloads, ...servicePayloads]);
+    const miscPayloads = miscItems.map((item, idx) => apiCreate('quote_items', {
+      quote_id: created.id,
+      item_type: '기타(HW/3rd-party 등)',
+      name: item.name,
+      classification: item.classification,
+      description: item.description,
+      remark: item.remark,
+      quantity: item.quantity,
+      list_price: item.list_price,
+      list_amount: item.list_amount,
+      unit_price: item.unit_price,
+      amount: item.amount,
+      sort_order: idx + 1
+    }));
+
+    await Promise.all([...licensePayloads, ...servicePayloads, ...miscPayloads]);
 
     notifySlackQuoteIssued(created);
 

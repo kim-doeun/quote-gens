@@ -39,6 +39,19 @@ for (const table of schemaDefs) {
       updated_at TEXT NOT NULL
     );
   `);
+
+  // Lightweight migration: if the table already existed (from an earlier
+  // deployment) and schema.json has since gained new fields, add the
+  // missing columns without touching existing data. Safe to run every
+  // startup since it only ever adds columns that are not already present.
+  const existingColumns = new Set(db.prepare(`PRAGMA table_info("${table.name}")`).all().map((c) => c.name));
+  for (const f of fields) {
+    if (!existingColumns.has(f.name)) {
+      const sqlType = SQL_TYPE_BY_FIELD_TYPE[f.type] || 'TEXT';
+      db.exec(`ALTER TABLE "${table.name}" ADD COLUMN "${f.name}" ${sqlType};`);
+      console.log(`[db] Added missing column "${f.name}" to "${table.name}".`);
+    }
+  }
 }
 
 module.exports = { db, tables };
