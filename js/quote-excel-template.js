@@ -193,9 +193,19 @@ function buildCompanyInfoTable(sheet, startRow, quote) {
   return r0 + rowsDef.length;
 }
 
-/* ---------------- 섹션 3: 항목 표 (01.S/W라이선스 / 02.개발비 공용) ---------------- */
+/* ---------------- 섹션 3: 항목 표 (01.S/W라이선스 / 02.개발비 / 03.기타품목 공용) ----------------
+   물리적으로는 항상 9개 컬럼(A~I)을 사용하는 고정 그리드이지만, 논리 컬럼 수가
+   9개보다 적은 경우(예: 03. 기타 품목은 "구분" 컬럼이 없어 8개)에는 opts.colSpans로
+   각 논리 컬럼이 차지할 물리 컬럼 수를 지정할 수 있습니다(합이 9가 되어야 함).
+   생략 시 headerLabels 개수만큼 전부 1칸씩 차지합니다(01/02와 동일하게 동작). */
 function buildItemSection(sheet, startRow, opts) {
   const { title, items, headerLabels, numFmts, rowMapper, subtotalLabel, taxRate } = opts;
+  const colSpans = opts.colSpans || headerLabels.map(() => 1);
+  // 각 논리 컬럼의 시작 물리 컬럼 번호(1-base)를 colSpans 누적합으로 계산
+  const colStarts = [];
+  let acc = 1;
+  colSpans.forEach(span => { colStarts.push(acc); acc += span; });
+
   let row = startRow;
 
   setMergedCell(sheet, row, 1, row, 9, title, {
@@ -211,7 +221,11 @@ function buildItemSection(sheet, startRow, opts) {
     alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
     border: thinBorder(),
   };
-  headerLabels.forEach((label, idx) => setMergedCell(sheet, row, idx + 1, row, idx + 1, label, headerStyle));
+  headerLabels.forEach((label, idx) => {
+    const c1 = colStarts[idx];
+    const c2 = c1 + colSpans[idx] - 1;
+    setMergedCell(sheet, row, c1, row, c2, label, headerStyle);
+  });
   sheet.getRow(row).height = 26;
   row += 1;
 
@@ -219,22 +233,32 @@ function buildItemSection(sheet, startRow, opts) {
   items.forEach(item => {
     const values = rowMapper(item);
     values.forEach((val, idx) => {
-      const cell = sheet.getCell(row, idx + 1);
-      cell.value = val;
-      cell.border = bodyBorder;
+      const c1 = colStarts[idx];
+      const c2 = c1 + colSpans[idx] - 1;
       const isNumber = typeof val === 'number';
-      cell.alignment = {
-        vertical: 'top',
-        wrapText: idx === 0 || idx === 1, // 항목/업무활동, 설명 컬럼 모두 자동 줄바꿈
-        horizontal: idx === 0 ? 'left' : (isNumber ? 'right' : 'center'),
-      };
-      cell.font = { size: 9, color: { argb: XLSX_COLORS.textDark }, bold: idx === 0 };
-      if (isNumber && numFmts && numFmts[idx]) cell.numFmt = numFmts[idx];
+      setMergedCell(sheet, row, c1, row, c2, val, {
+        border: bodyBorder,
+        alignment: {
+          vertical: 'top',
+          wrapText: idx === 0 || idx === 1, // 항목/업무활동, 설명 컬럼 모두 자동 줄바꿈
+          horizontal: idx === 0 ? 'left' : (isNumber ? 'right' : 'center'),
+        },
+        font: { size: 9, color: { argb: XLSX_COLORS.textDark }, bold: idx === 0 },
+        numFmt: isNumber && numFmts && numFmts[idx] ? numFmts[idx] : undefined,
+      });
     });
     // 항목/업무활동(A열), 설명(B열)이 길어 자동 줄바꿈되는 경우 행 높이를 자동 계산
+    // (병합된 논리 컬럼의 실제 폭 = 해당 컬럼이 차지하는 물리 컬럼들의 너비 합)
+    const colWidthOf = (idx) => {
+      const c1 = colStarts[idx];
+      const span = colSpans[idx];
+      let w = 0;
+      for (let c = c1; c < c1 + span; c++) w += QUOTE_XLSX_COLUMN_WIDTHS[c - 1];
+      return w;
+    };
     sheet.getRow(row).height = rowHeightForWrappedText([
-      { text: values[0], colWidthChars: QUOTE_XLSX_COLUMN_WIDTHS[0], fontSize: 9 },
-      { text: values[1], colWidthChars: QUOTE_XLSX_COLUMN_WIDTHS[1], fontSize: 9 },
+      { text: values[0], colWidthChars: colWidthOf(0), fontSize: 9 },
+      { text: values[1], colWidthChars: colWidthOf(1), fontSize: 9 },
     ], 18);
     row += 1;
   });
@@ -390,21 +414,37 @@ async function buildQuoteWorkbook(quote, items) {
     row += 1;
   }
 
+  // 03. 기타 품목: "구분"(하드웨어/3rd-party S/W/외주/기타)은 01·02와 같은 레벨의
+  // "표 단위" 구분이므로, classification 값이 처음 등장하는 순서대로 그룹화하여
+  // 유형별로 별도의 표(제목: "03. 기타 품목 - <구분>")를 만듭니다. 구분 컬럼은 없습니다.
   if (miscItems.length) {
-    row = buildItemSection(sheet, row, {
-      title: '03. 기타 품목',
-      items: miscItems,
-      headerLabels: ['항목', '설명', '구분', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
-      numFmts: [null, null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
-      rowMapper: item => [
-        item.name || '-', item.description || '-', item.classification || '-',
-        Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
-        Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
-      ],
-      subtotalLabel: '기타 품목 제안금액',
-      taxRate,
+    const miscOrder = [];
+    const miscGroups = {};
+    miscItems.forEach(item => {
+      const key = item.classification || '기타';
+      if (!miscGroups[key]) { miscGroups[key] = []; miscOrder.push(key); }
+      miscGroups[key].push(item);
     });
-    row += 1;
+
+    miscOrder.forEach(key => {
+      row = buildItemSection(sheet, row, {
+        title: `03. 기타 품목 - ${key}`,
+        items: miscGroups[key],
+        headerLabels: ['항목', '설명', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
+        // 구분 컬럼이 없어 논리 컬럼이 8개뿐이므로, 남는 1개 물리 컬럼을 "설명" 칸에 병합 배정
+        // (1:항목, 2:설명, 1:수량, 1:소비자단가, 1:소비자금액, 1:제안단가, 1:제안금액, 1:비고 = 9)
+        colSpans: [1, 2, 1, 1, 1, 1, 1, 1],
+        numFmts: [null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
+        rowMapper: item => [
+          item.name || '-', item.description || '-',
+          Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
+          Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
+        ],
+        subtotalLabel: `${key} 제안금액`,
+        taxRate,
+      });
+      row += 1;
+    });
   }
 
   row = buildGrandTotal(sheet, row, quote);

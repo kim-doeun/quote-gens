@@ -6,7 +6,12 @@
 
 let licenseItems = [];
 let serviceItems = [];
-let miscItems = [];
+// 03. 기타 품목: "구분"(하드웨어/3rd-party S/W/외주/기타)은 표의 컬럼이 아니라
+// 01(S/W 라이선스)·02(개발비)와 같은 레벨의 "표 단위" 구분입니다.
+// miscCategories = [{ classification: '하드웨어', items: [...] }, ...]
+// 상단 select에서 유형을 선택하면 해당 유형만을 위한 표가 새로 생성되고,
+// 그 표 안에서 "항목 추가"로 행을 계속 추가할 수 있습니다.
+let miscCategories = [];
 let productsCache = [];
 let ratesCache = [];
 let customersCache = [];
@@ -27,7 +32,8 @@ async function initQuoteNewPage() {
   bindEvents();
   renderLicenseTable();
   renderServiceTable();
-  renderMiscTable();
+  renderMiscCategorySelect();
+  renderMiscCategories();
   updateSummary();
 }
 
@@ -117,7 +123,12 @@ function bindEvents() {
 
   document.getElementById('btn-add-license').addEventListener('click', openLicenseModal);
   document.getElementById('btn-add-service').addEventListener('click', openServiceModal);
-  document.getElementById('btn-add-misc').addEventListener('click', addMiscItem);
+  document.getElementById('misc-category-select').addEventListener('change', (e) => {
+    const value = e.target.value;
+    if (!value) return;
+    addMiscCategory(value);
+    e.target.value = '';
+  });
   document.getElementById('tax-rate').addEventListener('input', updateSummary);
 
   // 라이선스 모달: 소비자단가/할인율/제안단가 연동
@@ -362,14 +373,46 @@ function renderServiceTable() {
 
 /* ---------------- 03. 기타 품목 ----------------
    S/W 라이선스(products)나 개발비(labor_rates)처럼 미리 등록된 카탈로그가
-   없는 하드웨어/3rd-party S/W/외주 등의 품목을 견적서 발급 시 필요할 때마다
-   바로 추가하는 섹션입니다. 별도 DB 테이블/관리 화면 없이, "품목 추가" 클릭 시
-   빈 행이 표에 즉시 추가되고 표 안에서 바로 값을 입력/수정합니다. */
-function addMiscItem() {
-  miscItems.push({
+   없는 하드웨어/3rd-party S/W/외주/기타 품목을 견적서 발급 시 필요할 때마다
+   바로 추가하는 섹션입니다. 별도 DB 테이블/관리 화면 없이 구성됩니다.
+
+   "구분"(하드웨어/3rd-party S/W/외주/기타)은 표의 컬럼이 아니라 01·02와 같은
+   레벨의 "표 단위" 구분입니다. 상단 select에서 유형을 선택하면 그 유형만을
+   위한 표가 새로 생성되고("이미 추가된 유형은 select에서 제외"), 표 안에서는
+   "항목 추가" 버튼으로 행을 계속 추가해 값을 입력/수정합니다. */
+
+function renderMiscCategorySelect() {
+  const sel = document.getElementById('misc-category-select');
+  const usedSet = new Set(miscCategories.map(c => c.classification));
+  const remaining = MISC_CLASSIFICATION_OPTIONS.filter(o => !usedSet.has(o));
+  sel.innerHTML = `<option value="">+ 품목 유형 선택</option>` +
+    remaining.map(o => `<option value="${o}">${o}</option>`).join('');
+  sel.disabled = remaining.length === 0;
+}
+
+function addMiscCategory(classification) {
+  if (miscCategories.some(c => c.classification === classification)) return;
+  miscCategories.push({ classification, items: [] });
+  addMiscItem(classification); // 표 생성 시 바로 입력 가능한 첫 행을 함께 추가
+  renderMiscCategorySelect();
+  renderMiscCategories();
+  updateSummary();
+}
+
+function removeMiscCategory(classification) {
+  if (!confirmAction(`"${classification}" 표를 삭제할까요? 입력된 항목도 함께 삭제됩니다.`)) return;
+  miscCategories = miscCategories.filter(c => c.classification !== classification);
+  renderMiscCategorySelect();
+  renderMiscCategories();
+  updateSummary();
+}
+
+function addMiscItem(classification) {
+  const cat = miscCategories.find(c => c.classification === classification);
+  if (!cat) return;
+  cat.items.push({
     id: uid('misc'),
     name: '',
-    classification: MISC_CLASSIFICATION_OPTIONS[0],
     description: '',
     remark: '',
     quantity: 1,
@@ -378,18 +421,22 @@ function addMiscItem() {
     unit_price: 0,
     amount: 0,
   });
-  renderMiscTable();
+  renderMiscCategories();
   updateSummary();
 }
 
-function removeMiscItem(itemId) {
-  miscItems = miscItems.filter(i => i.id !== itemId);
-  renderMiscTable();
+function removeMiscItem(classification, itemId) {
+  const cat = miscCategories.find(c => c.classification === classification);
+  if (!cat) return;
+  cat.items = cat.items.filter(i => i.id !== itemId);
+  renderMiscCategories();
   updateSummary();
 }
 
-function updateMiscField(itemId, field, value) {
-  const item = miscItems.find(i => i.id === itemId);
+function updateMiscField(classification, itemId, field, value) {
+  const cat = miscCategories.find(c => c.classification === classification);
+  if (!cat) return;
+  const item = cat.items.find(i => i.id === itemId);
   if (!item) return;
   if (['quantity', 'list_price', 'unit_price'].includes(field)) {
     item[field] = Number(value) || 0;
@@ -398,38 +445,76 @@ function updateMiscField(itemId, field, value) {
   }
   item.list_amount = Math.round(item.quantity * item.list_price);
   item.amount = Math.round(item.quantity * item.unit_price);
-  renderMiscTable();
+  renderMiscCategories();
   updateSummary();
 }
 
-function renderMiscTable() {
-  const tbody = document.getElementById('misc-body');
+function getAllMiscItems() {
+  return miscCategories.flatMap(c => c.items.map(item => ({ ...item, classification: c.classification })));
+}
+
+function renderMiscCategories() {
+  const wrap = document.getElementById('misc-categories-wrap');
   const noMsg = document.getElementById('no-misc-msg');
 
-  if (!miscItems.length) {
-    tbody.innerHTML = '';
+  if (!miscCategories.length) {
+    wrap.innerHTML = '';
     noMsg.classList.remove('hidden');
     return;
   }
   noMsg.classList.add('hidden');
 
-  tbody.innerHTML = miscItems.map(item => `
-    <tr>
-      <td><input type="text" class="input" value="${escapeAttr(item.name)}" placeholder="예: 문서 스캐너" onchange="updateMiscField('${item.id}','name', this.value)"></td>
-      <td><textarea class="input" style="min-height:1.9rem;" rows="1" placeholder="설명" onchange="updateMiscField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
-      <td>
-        <select class="input" onchange="updateMiscField('${item.id}','classification', this.value)">
-          ${MISC_CLASSIFICATION_OPTIONS.map(o => `<option value="${o}" ${item.classification === o ? 'selected' : ''}>${o}</option>`).join('')}
-        </select>
-      </td>
-      <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateMiscField('${item.id}','quantity', this.value)"></td>
-      <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateMiscField('${item.id}','list_price', this.value)"></td>
-      <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateMiscField('${item.id}','unit_price', this.value)"></td>
-      <td class="font-semibold whitespace-nowrap text-right">${formatCurrency(item.amount)}</td>
-      <td><input type="text" class="input" value="${escapeAttr(item.remark)}" onchange="updateMiscField('${item.id}','remark', this.value)"></td>
-      <td><button onclick="removeMiscItem('${item.id}')" class="btn-ghost btn text-rose-500" style="padding:0.2rem 0.35rem;"><i class="fa-solid fa-trash"></i></button></td>
-    </tr>
-  `).join('');
+  wrap.innerHTML = miscCategories.map(cat => {
+    const rows = cat.items.map(item => `
+      <tr>
+        <td><input type="text" class="input" value="${escapeAttr(item.name)}" placeholder="예: 문서 스캐너" onchange="updateMiscField('${cat.classification}','${item.id}','name', this.value)"></td>
+        <td><textarea class="input" style="min-height:1.9rem;" rows="1" placeholder="설명" onchange="updateMiscField('${cat.classification}','${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
+        <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateMiscField('${cat.classification}','${item.id}','quantity', this.value)"></td>
+        <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateMiscField('${cat.classification}','${item.id}','list_price', this.value)"></td>
+        <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateMiscField('${cat.classification}','${item.id}','unit_price', this.value)"></td>
+        <td class="font-semibold whitespace-nowrap text-right">${formatCurrency(item.amount)}</td>
+        <td><input type="text" class="input" value="${escapeAttr(item.remark)}" onchange="updateMiscField('${cat.classification}','${item.id}','remark', this.value)"></td>
+        <td><button onclick="removeMiscItem('${cat.classification}','${item.id}')" class="btn-ghost btn text-rose-500" style="padding:0.2rem 0.35rem;"><i class="fa-solid fa-trash"></i></button></td>
+      </tr>
+    `).join('');
+
+    const catSubtotal = cat.items.reduce((sum, i) => sum + i.amount, 0);
+
+    return `
+      <div class="border border-slate-200 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+            <span class="inline-flex items-center justify-center text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded px-2 py-0.5">기타 품목</span>
+            ${cat.classification}
+          </h3>
+          <div class="flex items-center gap-2">
+            <button onclick="addMiscItem('${cat.classification}')" class="btn btn-secondary text-xs py-1.5"><i class="fa-solid fa-plus"></i> 항목 추가</button>
+            <button onclick="removeMiscCategory('${cat.classification}')" class="btn-ghost btn text-rose-500 text-xs" style="padding:0.3rem 0.5rem;"><i class="fa-solid fa-trash"></i> 표 삭제</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table compact-table">
+            <thead>
+              <tr>
+                <th style="width:17%">항목</th>
+                <th style="width:23%">설명</th>
+                <th style="width:6%" class="text-right">수량</th>
+                <th style="width:11%" class="text-right">소비자단가</th>
+                <th style="width:11%" class="text-right">제안단가</th>
+                <th style="width:11%" class="text-right">제안금액</th>
+                <th style="width:15%">비고</th>
+                <th style="width:4%"></th>
+              </tr>
+            </thead>
+            <tbody>${rows || `<tr><td colspan="8" class="text-center text-slate-400 text-sm py-4">항목을 추가해주세요.</td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="flex justify-end mt-2">
+          <span class="text-xs text-slate-500">${cat.classification} 소계: <span class="font-semibold text-slate-700">${formatCurrency(catSubtotal)}</span></span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function escapeAttr(str) {
@@ -444,7 +529,7 @@ function updateSummary() {
   const licenseSubtotal = licenseItems.reduce((sum, i) => sum + i.amount, 0);
   const licenseListSubtotal = licenseItems.reduce((sum, i) => sum + i.list_amount, 0);
   const serviceSubtotal = serviceItems.reduce((sum, i) => sum + i.amount, 0);
-  const miscSubtotal = miscItems.reduce((sum, i) => sum + i.amount, 0);
+  const miscSubtotal = getAllMiscItems().reduce((sum, i) => sum + i.amount, 0);
   const subtotal = licenseSubtotal + serviceSubtotal + miscSubtotal;
   const taxRate = Number(document.getElementById('tax-rate').value) || 0;
   const taxAmount = Math.round(subtotal * (taxRate / 100));
@@ -487,11 +572,12 @@ async function saveQuote() {
     showToast('견적담당(영업대표) 이름을 입력해주세요.', 'error');
     return;
   }
-  if (!licenseItems.length && !serviceItems.length && !miscItems.length) {
+  const miscItemsFlat = getAllMiscItems();
+  if (!licenseItems.length && !serviceItems.length && !miscItemsFlat.length) {
     showToast('S/W 라이선스, 개발비 또는 기타 품목을 1개 이상 추가해주세요.', 'error');
     return;
   }
-  if (miscItems.some(i => !i.name.trim())) {
+  if (miscItemsFlat.some(i => !i.name.trim())) {
     showToast('03. 기타 품목의 항목명을 모두 입력해주세요.', 'error');
     return;
   }
@@ -562,7 +648,7 @@ async function saveQuote() {
       sort_order: idx + 1
     }));
 
-    const miscPayloads = miscItems.map((item, idx) => apiCreate('quote_items', {
+    const miscPayloads = miscItemsFlat.map((item, idx) => apiCreate('quote_items', {
       quote_id: created.id,
       item_type: '기타(HW/3rd-party 등)',
       name: item.name,

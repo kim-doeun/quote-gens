@@ -162,32 +162,18 @@
           </div>
         </section>
 
-        <!-- 03. 기타 품목 -->
+        <!-- 03. 기타 품목: 구분(하드웨어/3rd-party S/W/외주/기타)은 01·02와 같은 "표 단위"이며,
+             표 안의 컬럼이 아닙니다. 유형을 선택하면 그 유형만을 위한 표가 새로 생성됩니다. -->
         <section class="card p-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box text-indigo-500"></i>03. 기타 품목</h2>
-            <button id="btn-add-misc" class="btn btn-secondary text-xs py-2"><i class="fa-solid fa-plus"></i> 품목 추가</button>
+            <select id="misc-category-select" class="input" style="width:auto; max-width:220px; padding:0.45rem 0.7rem;">
+              <option value="">+ 품목 유형 선택</option>
+            </select>
           </div>
-          <p class="text-slate-400 text-xs mb-3">하드웨어, 3rd-party S/W, 외주 등 카탈로그에 등록되지 않은 품목을 필요할 때마다 직접 추가하세요. 행을 추가한 뒤 표에서 바로 값을 입력/수정할 수 있습니다.</p>
-          <div class="table-wrap">
-            <table class="data-table compact-table" id="misc-table">
-              <thead>
-                <tr>
-                  <th style="width:15%">항목</th>
-                  <th style="width:19%">설명</th>
-                  <th style="width:9%">구분</th>
-                  <th style="width:5%" class="text-right">수량</th>
-                  <th style="width:10%" class="text-right">소비자단가</th>
-                  <th style="width:10%" class="text-right">제안단가</th>
-                  <th style="width:10%" class="text-right">제안금액</th>
-                  <th style="width:14%">비고</th>
-                  <th style="width:4%"></th>
-                </tr>
-              </thead>
-              <tbody id="misc-body"></tbody>
-            </table>
-          </div>
-          <p id="no-misc-msg" class="text-center text-slate-400 text-sm py-6">아직 추가된 기타 품목이 없습니다.</p>
+          <p class="text-slate-400 text-xs mb-4">하드웨어, 3rd-party S/W, 외주, 기타 중 필요한 품목 유형을 선택하면 해당 유형만의 표가 새로 생성됩니다. 01·02와 마찬가지로 유형별 표에서 항목을 자유롭게 추가·입력하세요.</p>
+          <div id="misc-categories-wrap" class="flex flex-col gap-4"></div>
+          <p id="no-misc-msg" class="text-center text-slate-400 text-sm py-6">아직 추가된 기타 품목 유형이 없습니다. 위에서 유형을 선택해 표를 추가하세요.</p>
           <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
             <div class="w-full sm:w-72 space-y-1.5 text-sm">
               <div class="flex justify-between text-slate-600"><span>기타 품목 제안금액 (VAT 제외)</span><span id="misc-subtotal-view" class="font-semibold">0원</span></div>
