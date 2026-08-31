@@ -207,47 +207,22 @@ function toggleSidebar() {
 
 /* ---------------- Slack 알림 (견적서 발급) ----------------
    견적서 저장(발급) 성공 시 지정된 Slack 채널로 알림 메시지를 전송합니다.
-   - Incoming Webhook 사용 (채널 고정, 스레드 답글 아님 — 매번 새 메시지로 게시)
-   - 브라우저 CORS 제약으로 응답은 읽을 수 없어 mode:'no-cors'로 전송(전송 자체는 정상 동작) */
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
-
+   Webhook URL은 더 이상 클라이언트 코드에 두지 않고 서버(SLACK_WEBHOOK_URL 환경변수)에서만
+   보관하며, 브라우저는 견적 요약 정보만 백엔드의 /api/slack/notify-quote로 전달합니다. */
 async function notifySlackQuoteIssued(quote) {
-  if (!SLACK_WEBHOOK_URL) return;
   try {
     const detailUrl = new URL(`quote-detail.html?id=${quote.id}`, location.href).href;
-
-    const payload = {
-      text: `📄 새 견적서가 발급되었습니다: ${quote.quote_number} (${quote.customer_name || '-'})`,
-      blocks: [
-        {
-          type: 'header',
-          text: { type: 'plain_text', text: `📄 새 견적서 발급: ${quote.quote_number}`, emoji: true }
-        },
-        {
-          type: 'section',
-          fields: [
-            { type: 'mrkdwn', text: `*견적번호*\n${quote.quote_number || '-'}` },
-            { type: 'mrkdwn', text: `*고객사명*\n${quote.customer_name || '-'}` },
-            { type: 'mrkdwn', text: `*견적명*\n${quote.quote_title || '-'}` },
-            { type: 'mrkdwn', text: `*총 제안 금액 (VAT 포함)*\n${formatCurrency(quote.total)}` },
-            { type: 'mrkdwn', text: `*담당자*\n${quote.sales_rep_name || '-'}` }
-          ]
-        },
-        {
-          type: 'section',
-          text: { type: 'mrkdwn', text: `🔗 <${detailUrl}|견적서 상세 페이지 바로가기>` }
-        }
-      ]
-    };
-
-    // no-cors 모드에서는 Content-Type: application/json 헤더를 보낼 수 없으므로
-    // Slack이 공식 지원하는 방식대로 application/x-www-form-urlencoded + payload 파라미터로 전송합니다.
-    const body = new URLSearchParams({ payload: JSON.stringify(payload) });
-
-    await fetch(SLACK_WEBHOOK_URL, {
+    await fetch('api/slack/notify-quote', {
       method: 'POST',
-      mode: 'no-cors',
-      body
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteNumber: quote.quote_number,
+        customerName: quote.customer_name,
+        quoteTitle: quote.quote_title,
+        totalAmount: formatCurrency(quote.total),
+        salesRepName: quote.sales_rep_name,
+        detailUrl
+      })
     });
   } catch (e) {
     console.error('Slack 알림 전송 실패:', e);

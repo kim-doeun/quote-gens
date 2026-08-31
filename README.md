@@ -1,6 +1,6 @@
 # Lomin 견적서 발급 및 관리 시스템
 
-Lomin(로민) 회사의 영업대표들을 위한 **견적서 발급 시스템**이자, 회사 전체의 **견적 이력 관리 시스템**입니다. 정적 웹사이트(HTML/CSS/JS) + RESTful Table API로 구현되었습니다.
+Lomin(로민) 회사의 영업대표들을 위한 **견적서 발급 시스템**이자, 회사 전체의 **견적 이력 관리 시스템**입니다. 프론트엔드(HTML/CSS/JS)와 자체 RESTful Table API 백엔드(Node.js + SQLite)로 구성되며, Docker로 온프레미스 환경에 배포합니다.
 
 ---
 
@@ -199,21 +199,22 @@ Lomin(로민) 회사의 영업대표들을 위한 **견적서 발급 시스템**
 - Vanilla JavaScript (모듈 없이 페이지별 스크립트로 분리: `js/common.js`, `js/dashboard.js`, `js/quote-new.js`, `js/quotes.js`, `js/quote-detail.js`, `js/customers.js`, `js/products.js`, `js/labor-rates.js`)
 - Chart.js (대시보드 차트)
 - Font Awesome (아이콘)
-- RESTful Table API (`tables/{table}`)로 CRUD, 별도 백엔드 서버 없음
+- **백엔드**: `server/`의 Node.js(Express) + SQLite(`better-sqlite3`)로 구현한 자체 RESTful Table API (`tables/{table}`)로 CRUD. 원래 GenSpark Hosted Deploy가 제공하던 Table API(D1 기반)를 그대로 대체하도록 동일한 요청/응답 형식을 구현했으며, `.tables/schema.json`을 기준으로 테이블을 자동 생성합니다.
+- **배포**: Docker / Docker Compose 기반 온프레미스 배포 (아래 8절 참고)
 
 ---
 
 ## 6. 아직 구현되지 않은 기능 / 제한사항
 
-- **로그인/권한 관리**: 현재는 별도 인증 없이 모든 방문자가 전체 기능에 접근 가능합니다 (정적 사이트 특성상 서버 인증 불가). 영업대표별 접근 제한이 필요하면 Hosted Deploy의 **Access Rules**(로그인 기반 접근 제어)를 별도로 적용할 수 있습니다.
-- **이메일 발송**: 견적서를 고객에게 이메일로 직접 발송하는 기능은 없습니다 (인증 필요한 이메일 API 연동은 정적 사이트에서 불가). 인쇄/PDF 저장 후 수동 발송을 권장합니다.
+- **로그인/권한 관리**: 현재는 별도 인증 없이 모든 방문자가 전체 기능에 접근 가능합니다. 자체 백엔드(Express)가 생겼으므로 세션/JWT 기반 로그인을 서버에 직접 추가하거나, 리버스 프록시 단에서 사내망/VPN 제한 또는 기본 인증(Basic Auth)을 적용할 수 있습니다.
+- **이메일 발송**: 견적서를 고객에게 이메일로 직접 발송하는 기능은 없습니다. 백엔드가 생겼으므로 향후 이메일 API(SMTP 등) 연동을 서버 쪽에 추가하는 것이 가능하지만, 현재는 구현되어 있지 않습니다. 인쇄/PDF 저장 후 수동 발송을 권장합니다.
 - **전자서명/승인 워크플로우**: 고객의 온라인 서명, 내부 결재선 등의 워크플로우는 없습니다.
 - **다중 통화**: 원화(KRW) 기준으로만 계산됩니다.
 - **버전 관리(견적서 수정 이력)**: 견적서 수정 시 이전 버전을 보관하지 않고 현재 값만 유지합니다.
 
 ## 7. 추천 다음 단계
 
-1. Access Rules를 적용해 사내 직원만 접근 가능하도록 로그인 기반 접근 제어 설정
+1. 백엔드(Express)에 로그인/세션 기반 접근 제어 또는 리버스 프록시 인증을 추가해 사내 직원만 접근 가능하도록 설정
 2. 영업대표별 실적/전환율 통계를 대시보드에 추가
 3. 견적서 승인 시 고객 서명 이미지 업로드 기능(정적 사이트 범위 내 파일 저장 방식 검토) 추가
 4. 견적서 템플릿(회사 로고/직인 이미지) 커스터마이징 옵션 추가
@@ -232,7 +233,65 @@ Lomin(로민) 회사의 영업대표들을 위한 **견적서 발급 시스템**
 
 ---
 
-## 8. 배포
+## 8. 배포 (온프레미스 Docker)
 
-퍼블리시 탭에서 원클릭 배포가 가능합니다. Hosted Deploy를 통해 배포하면 실 운영 데이터베이스(D1)에 위 스키마가 그대로 생성되며, 필요 시 초기 샘플 데이터를 운영 DB에도 반영할 수 있습니다.
-# guote-gens
+이 프로젝트는 더 이상 GenSpark Hosted Deploy(Table API/D1)에 의존하지 않습니다. `server/` 디렉터리의 Node.js(Express) 서버가 정적 프론트엔드 파일과 RESTful Table API를 함께 서빙하며, 데이터는 SQLite 파일(`better-sqlite3`)에 저장됩니다.
+
+### 8.1 빠른 시작
+
+```bash
+# 1) 환경변수 설정 (Slack Webhook 등)
+cp .env.example .env
+# .env 파일에 SLACK_WEBHOOK_URL 등을 채워 넣습니다 (선택 사항).
+
+# 2) 빌드 및 실행
+docker compose up -d --build
+
+# 3) (선택) 최초 실행 시 샘플 데이터 채우기 — 테이블이 비어 있을 때만 삽입되어 안전합니다.
+docker compose exec app node server/seed.js
+```
+
+브라우저에서 `http://localhost:3000` (또는 `.env`의 `APP_PORT`)으로 접속합니다.
+
+### 8.2 구성 요소
+
+| 구성 | 설명 |
+|---|---|
+| `server/index.js` | Express 앱 진입점. 정적 파일(`html`/`css`/`js`/`images`)과 `/tables/*`, `/api/slack/*` API를 서빙 |
+| `server/db.js` | `.tables/schema.json`을 읽어 SQLite 테이블을 자동 생성 |
+| `server/routes/tables.js` | GenSpark Table API와 동일한 요청/응답 형식(GET/POST/PATCH/DELETE, `{ data: [...] }` 등)의 범용 CRUD 라우터 |
+| `server/routes/slack.js` | 견적서 발급 알림을 Slack Incoming Webhook으로 전송하는 서버 프록시 |
+| `server/seed.js` | 빈 테이블에만 샘플 데이터를 채우는 멱등(idempotent) 시드 스크립트 |
+| `Dockerfile` / `docker-compose.yml` | 컨테이너 빌드 및 실행 정의. SQLite 데이터는 `quote-gens-data` 볼륨(`/data/app.db`)에 영속 저장됨 |
+
+### 8.3 환경변수
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `PORT` | `3000` | 컨테이너 내부 서버 포트 |
+| `DB_PATH` | `/data/app.db` | SQLite 데이터베이스 파일 경로 (볼륨 마운트 대상) |
+| `SLACK_WEBHOOK_URL` | (없음) | 견적서 발급 알림용 Slack Incoming Webhook. 비워두면 알림을 보내지 않음 |
+| `APP_PORT` | `3000` | (docker-compose 전용) 호스트에 노출할 포트 |
+
+### 8.4 보안 참고
+
+- 기존에는 Slack Webhook URL이 `js/common.js`에 하드코딩되어 브라우저(및 git 저장소)에 그대로 노출되었습니다. 이제는 서버 환경변수(`SLACK_WEBHOOK_URL`)로만 관리되며, 브라우저는 `/api/slack/notify-quote`로 견적 요약 정보만 전달합니다.
+- **⚠️ 이 저장소의 git 히스토리에는 과거 커밋에 포함되었던 실제 Webhook URL이 남아 있습니다.** 저장소를 공개하거나 외부와 공유하기 전에 Slack에서 해당 Webhook을 반드시 재발급(무효화)하세요.
+- `server/index.js`는 `server/`, `.git/`, `.tables/`, SQLite 데이터 디렉터리를 정적 서빙 대상에서 제외하고 `html`/`css`/`js`/`images`만 노출합니다.
+- 로그인/권한 관리는 여전히 구현되어 있지 않습니다(6절 참고). 사내망 접근 제한이 필요하면 리버스 프록시(Nginx 등) 앞단에 인증을 추가하는 것을 권장합니다.
+
+### 8.5 데이터 백업/복원
+
+SQLite 파일 하나(`quote-gens-data` 볼륨의 `app.db`)가 전체 데이터입니다.
+
+```bash
+# 백업
+docker compose exec app sh -c 'cat /data/app.db' > backup.db
+
+# 복원 (컨테이너 정지 후 볼륨에 파일을 덮어쓰기)
+docker compose down
+docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)":/backup alpine \
+  cp /backup/backup.db /data/app.db
+docker compose up -d
+```
+

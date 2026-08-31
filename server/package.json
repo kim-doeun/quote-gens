@@ -1,0 +1,18 @@
+{
+  "name": "quote-gens-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted RESTful Table API + static file server for the Lomin quote management app (replaces the GenSpark-hosted backend for on-premise Docker deployment).",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.19.2"
+  }
+}
