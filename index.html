@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대시보드 | Lomin 견적관리 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<style>body{font-family:'Noto Sans KR',sans-serif;}</style>
+</head>
+<body class="bg-[#f4f5f9]" data-page="index.html">
+
+<div class="flex flex-col lg:flex-row min-h-screen">
+  <div id="sidebar-mount"></div>
+
+  <main class="flex-1 p-4 md:p-8">
+    <!-- 헤더 -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">대시보드</h1>
+        <p class="text-slate-500 text-sm mt-1">Lomin 견적서 발급 및 이력 현황을 한눈에 확인하세요.</p>
+      </div>
+      <a href="quote-new.html" class="btn btn-primary self-start md:self-auto">
+        <i class="fa-solid fa-plus"></i> 새 견적서 발급
+      </a>
+    </header>
+
+    <!-- 요약 카드 -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-sm font-medium">전체 견적서</p>
+          <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-total">0건</p>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-sm font-medium">이번 달 발행 금액</p>
+          <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-won-sign"></i></div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-month-total">0원</p>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-sm font-medium">승인된 견적</p>
+          <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-approved">0건</p>
+      </div>
+      <div class="card p-5">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-sm font-medium">진행중 (발송/협상)</p>
+          <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-hourglass-half"></i></div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-inprogress">0건</p>
+      </div>
+    </section>
+
+    <!-- 차트 영역 -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+      <div class="card p-5 lg:col-span-2">
+        <h2 class="font-bold text-slate-800 mb-1">월별 견적 발행 금액</h2>
+        <p class="text-slate-400 text-xs mb-4">최근 6개월 견적 발행 금액 추이</p>
+        <div style="height:280px;">
+          <canvas id="monthlyChart"></canvas>
+        </div>
+      </div>
+      <div class="card p-5">
+        <h2 class="font-bold text-slate-800 mb-1">상태별 분포</h2>
+        <p class="text-slate-400 text-xs mb-4">전체 견적서 상태 비율</p>
+        <div style="height:280px;">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- 최근 견적서 -->
+    <section class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-slate-800">최근 견적서</h2>
+        <a href="quotes.html" class="text-indigo-600 text-sm font-semibold hover:underline">전체 이력 보기 <i class="fa-solid fa-arrow-right ml-1"></i></a>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>견적번호</th>
+              <th>고객사</th>
+              <th>영업대표</th>
+              <th>발행일</th>
+              <th class="text-right">총액</th>
+              <th>상태</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="recent-quotes-body">
+            <tr><td colspan="7" class="text-center text-slate-400 py-8">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

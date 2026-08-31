@@ -1,0 +1,369 @@
+[
+  {
+    "name": "products",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "제품 고유 ID"
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "description": "S/W 라이선스 제품명"
+      },
+      {
+        "name": "category",
+        "type": "text",
+        "description": "분류",
+        "options": [
+          "라이선스",
+          "구독"
+        ]
+      },
+      {
+        "name": "unit",
+        "type": "text",
+        "description": "판매 단위"
+      },
+      {
+        "name": "list_price",
+        "type": "number",
+        "description": "소비자단가(LP)"
+      },
+      {
+        "name": "unit_price",
+        "type": "number",
+        "description": "제안단가(P)"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "description": "제품 설명"
+      },
+      {
+        "name": "is_active",
+        "type": "bool",
+        "description": "판매중 여부"
+      }
+    ]
+  },
+  {
+    "name": "customers",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "고객사 고유 ID"
+      },
+      {
+        "name": "company_name",
+        "type": "text",
+        "description": "회사명"
+      },
+      {
+        "name": "business_number",
+        "type": "text",
+        "description": "사업자등록번호"
+      },
+      {
+        "name": "industry",
+        "type": "text",
+        "description": "업종"
+      },
+      {
+        "name": "contact_name",
+        "type": "text",
+        "description": "담당자명"
+      },
+      {
+        "name": "contact_position",
+        "type": "text",
+        "description": "담당자 직급"
+      },
+      {
+        "name": "phone",
+        "type": "text",
+        "description": "연락처"
+      },
+      {
+        "name": "email",
+        "type": "text",
+        "description": "이메일"
+      },
+      {
+        "name": "address",
+        "type": "text",
+        "description": "주소"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "description": "비고"
+      }
+    ]
+  },
+  {
+    "name": "quotes",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "견적서 고유 ID"
+      },
+      {
+        "name": "quote_number",
+        "type": "text",
+        "description": "견적서 번호"
+      },
+      {
+        "name": "quote_title",
+        "type": "text",
+        "description": "견적명 (프로젝트명)"
+      },
+      {
+        "name": "reference",
+        "type": "text",
+        "description": "참조 (선택 입력)"
+      },
+      {
+        "name": "customer_id",
+        "type": "text",
+        "description": "고객사 ID"
+      },
+      {
+        "name": "customer_name",
+        "type": "text",
+        "description": "고객사명"
+      },
+      {
+        "name": "customer_contact",
+        "type": "text",
+        "description": "고객 담당자명 (수신)"
+      },
+      {
+        "name": "customer_email",
+        "type": "text",
+        "description": "고객 이메일"
+      },
+      {
+        "name": "customer_phone",
+        "type": "text",
+        "description": "고객 연락처"
+      },
+      {
+        "name": "customer_address",
+        "type": "text",
+        "description": "고객 주소"
+      },
+      {
+        "name": "sales_rep_name",
+        "type": "text",
+        "description": "영업대표 이름 (견적담당)"
+      },
+      {
+        "name": "sales_rep_email",
+        "type": "text",
+        "description": "영업대표 이메일"
+      },
+      {
+        "name": "sales_rep_phone",
+        "type": "text",
+        "description": "영업대표 연락처"
+      },
+      {
+        "name": "issue_date",
+        "type": "datetime",
+        "description": "발행일"
+      },
+      {
+        "name": "valid_until",
+        "type": "datetime",
+        "description": "유효기한"
+      },
+      {
+        "name": "status",
+        "type": "text",
+        "description": "상태(발행 후 관리용, 발급 시에는 사용자가 지정하지 않음)",
+        "options": [
+          "발송전",
+          "발송됨",
+          "내부협의중",
+          "계약됨",
+          "만료됨"
+        ]
+      },
+      {
+        "name": "tax_rate",
+        "type": "number",
+        "description": "부가세율(%)"
+      },
+      {
+        "name": "license_subtotal",
+        "type": "number",
+        "description": "S/W 라이선스 제안금액 합계(VAT 제외)"
+      },
+      {
+        "name": "service_subtotal",
+        "type": "number",
+        "description": "개발비(인건비) 제안금액 합계(VAT 제외)"
+      },
+      {
+        "name": "subtotal",
+        "type": "number",
+        "description": "전체(라이선스+개발비) 제안금액 합계(VAT 제외)"
+      },
+      {
+        "name": "tax_amount",
+        "type": "number",
+        "description": "부가세액"
+      },
+      {
+        "name": "total",
+        "type": "number",
+        "description": "총 제안 금액(VAT 포함)"
+      },
+      {
+        "name": "payment_terms",
+        "type": "text",
+        "description": "결제 조건"
+      },
+      {
+        "name": "notes",
+        "type": "text",
+        "description": "고객에게 보여지는 비고"
+      },
+      {
+        "name": "internal_memo",
+        "type": "text",
+        "description": "내부 메모(비공개)"
+      }
+    ]
+  },
+  {
+    "name": "quote_items",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "항목 고유 ID"
+      },
+      {
+        "name": "quote_id",
+        "type": "text",
+        "description": "소속 견적서 ID"
+      },
+      {
+        "name": "item_type",
+        "type": "text",
+        "description": "항목 유형",
+        "options": [
+          "제품(S/W라이선스)",
+          "서비스(개발/구축)"
+        ]
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "description": "제품명 또는 업무 활동명"
+      },
+      {
+        "name": "classification",
+        "type": "text",
+        "description": "구분 (예: 운영/개발) - 제품 항목에 주로 사용"
+      },
+      {
+        "name": "assignee",
+        "type": "text",
+        "description": "담당(역할) - 서비스 항목의 과거 필드(화운간 데이타, 현재 UI에서는 보이지 않음)"
+      },
+      {
+        "name": "grade",
+        "type": "text",
+        "description": "등급 - 서비스 항목에 주로 사용",
+        "options": [
+          "특급",
+          "고급",
+          "중급",
+          "초급"
+        ]
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "description": "세벀 설명 (여러 줄 설명 가능)"
+      },
+      {
+        "name": "remark",
+        "type": "text",
+        "description": "뱄고 (항목별 추가 안내/뱄고)"
+      },
+      {
+        "name": "quantity",
+        "type": "number",
+        "description": "수량(Q) 또는 인월(M/M)"
+      },
+      {
+        "name": "list_price",
+        "type": "number",
+        "description": "소매자단가(LP)"
+      },
+      {
+        "name": "list_amount",
+        "type": "number",
+        "description": "소매자갈액(Q*LP)"
+      },
+      {
+        "name": "unit_price",
+        "type": "number",
+        "description": "제안단가(P)"
+      },
+      {
+        "name": "amount",
+        "type": "number",
+        "description": "제안금액(Q*P)"
+      },
+      {
+        "name": "sort_order",
+        "type": "number",
+        "description": "표시 순서"
+      }
+    ]
+  },
+  {
+    "name": "labor_rates",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "인건단가 고유 ID"
+      },
+      {
+        "name": "grade",
+        "type": "text",
+        "description": "등급",
+        "options": [
+          "특급",
+          "고급",
+          "중급",
+          "초급"
+        ]
+      },
+      {
+        "name": "default_role",
+        "type": "text",
+        "description": "기본 직무/담당 예시 (예: BE 엔지니어)"
+      },
+      {
+        "name": "monthly_rate",
+        "type": "number",
+        "description": "인월(M/M)당 소비자단가"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "description": "등급 설명"
+      }
+    ]
+  }
+]

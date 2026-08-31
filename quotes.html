@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>견적 이력 관리 | Lomin 견적관리 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/style.css">
+<style>body{font-family:'Noto Sans KR',sans-serif;}</style>
+</head>
+<body class="bg-[#f4f5f9]" data-page="quotes.html">
+
+<div class="flex flex-col lg:flex-row min-h-screen">
+  <div id="sidebar-mount"></div>
+
+  <main class="flex-1 p-4 md:p-8">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">견적 이력 관리</h1>
+        <p class="text-slate-500 text-sm mt-1">발행된 모든 견적서를 검색하고 상태를 관리하세요.</p>
+      </div>
+      <a href="quote-new.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> 새 견적서 발급</a>
+    </header>
+
+    <!-- 필터 바 -->
+    <section class="card p-4 mb-5">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="md:col-span-2 relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input type="text" id="search-input" class="input" style="padding-left:2.2rem;" placeholder="견적번호, 고객사, 영업대표 검색">
+        </div>
+        <select id="filter-status" class="input">
+          <option value="">전체 상태</option>
+          <option value="발송전">발송전</option>
+          <option value="발송됨">발송됨</option>
+          <option value="내부협의중">내부협의중</option>
+          <option value="계약됨">계약됨</option>
+          <option value="만료됨">만료됨</option>
+        </select>
+        <select id="filter-rep" class="input">
+          <option value="">전체 영업대표</option>
+        </select>
+        <select id="sort-order" class="input">
+          <option value="date-desc">발행일 최신순</option>
+          <option value="date-asc">발행일 오래된순</option>
+          <option value="total-desc">금액 높은순</option>
+          <option value="total-asc">금액 낮은순</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- 요약 바 -->
+    <section class="flex flex-wrap gap-4 mb-5 text-sm">
+      <div class="card px-4 py-3 flex items-center gap-2"><span class="text-slate-400">검색 결과</span><span id="result-count" class="font-bold text-slate-800">0건</span></div>
+      <div class="card px-4 py-3 flex items-center gap-2"><span class="text-slate-400">합계 금액</span><span id="result-total" class="font-bold text-indigo-600">0원</span></div>
+    </section>
+
+    <!-- 목록 -->
+    <section class="card p-0 overflow-hidden">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>견적번호</th>
+              <th>고객사</th>
+              <th>영업대표</th>
+              <th>발행일</th>
+              <th>유효기한</th>
+              <th class="text-right">총액</th>
+              <th>상태</th>
+              <th style="width:1%"></th>
+            </tr>
+          </thead>
+          <tbody id="quotes-body">
+            <tr><td colspan="8" class="text-center text-slate-400 py-10">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 상태 변경 모달 -->
+<div id="status-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 380px;">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-800">상태 변경</h3>
+      <button onclick="closeStatusModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-5">
+      <label class="block text-xs font-semibold text-slate-500 mb-1.5">새 상태 선택</label>
+      <select id="status-modal-select" class="input mb-4">
+        <option value="발송전">발송전</option>
+        <option value="발송됨">발송됨</option>
+        <option value="내부협의중">내부협의중</option>
+        <option value="계약됨">계약됨</option>
+        <option value="만료됨">만료됨</option>
+      </select>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeStatusModal()" class="btn btn-secondary">취소</button>
+        <button onclick="confirmStatusChange()" class="btn btn-primary">변경</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/quotes.js"></script>
+</body>
+</html>
