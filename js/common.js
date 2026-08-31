@@ -208,8 +208,11 @@ function toggleSidebar() {
 /* ---------------- Slack 알림 (견적서 발급) ----------------
    견적서 저장(발급) 성공 시 지정된 Slack 채널로 알림 메시지를 전송합니다.
    - Incoming Webhook 사용 (채널 고정, 스레드 답글 아님 — 매번 새 메시지로 게시)
-   - 브라우저 CORS 제약으로 응답은 읽을 수 없어 mode:'no-cors'로 전송(전송 자체는 정상 동작) */
+   - 브라우저 CORS 제약으로 응답은 읽을 수 없어 mode:'no-cors'로 전송(전송 자체는 정상 동작) 
 const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+*/
+
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services
 
 async function notifySlackQuoteIssued(quote) {
   if (!SLACK_WEBHOOK_URL) return;
