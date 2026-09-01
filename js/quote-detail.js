@@ -77,7 +77,7 @@ function bindDetailEvents(id) {
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
-    if (!confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.')) return;
+    if (!(await confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.'))) return;
     try {
       await apiDelete('quotes', id);
       showToast('견적서가 삭제되었습니다.', 'success');

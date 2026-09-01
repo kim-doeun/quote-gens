@@ -153,8 +153,8 @@ function bindEvents() {
     syncDiscountFromPrice('modal-service-listprice', 'modal-service-discount', 'modal-service-price');
   });
   document.getElementById('btn-save-quote').addEventListener('click', saveQuote);
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    if (confirmAction('입력한 내용을 모두 초기화할까요?')) location.reload();
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    if (await confirmAction('입력한 내용을 모두 초기화할까요?')) location.reload();
   });
 }
 
@@ -399,8 +399,8 @@ function addMiscCategory(classification) {
   updateSummary();
 }
 
-function removeMiscCategory(classification) {
-  if (!confirmAction(`"${classification}" 표를 삭제할까요? 입력된 항목도 함께 삭제됩니다.`)) return;
+async function removeMiscCategory(classification) {
+  if (!(await confirmAction(`"${classification}" 표를 삭제할까요? 입력된 항목도 함께 삭제됩니다.`))) return;
   miscCategories = miscCategories.filter(c => c.classification !== classification);
   renderMiscCategorySelect();
   renderMiscCategories();

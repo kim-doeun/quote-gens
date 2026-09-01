@@ -137,9 +137,66 @@ function showToast(message, type = 'info') {
   }, 2600);
 }
 
-/* ---------------- 확인 모달 (간단 confirm 대체) ---------------- */
+/* ---------------- 확인 모달 (간단 confirm 대체) ----------------
+   브라우저 네이티브 window.confirm()은 다음과 같은 문제가 있어 자체 모달로 대체합니다:
+   - 동기(synchronous) 호출이라 표시 위치가 브라우저마다 다르고 눈에 잘 안 띄는 경우가 있음
+   - 이 페이지가 iframe 등 allow-modals 권한이 없는 컨테이너 안에서 열리면 호출 자체가
+     무시(ignored)되어, 사용자 입장에서는 화면이 응답 없이 멈춘 것처럼 보임
+     ("Ignored call to 'confirm()'. The document is sandboxed, ..." 콘솔 에러 발생)
+   confirmAction()은 이제 Promise를 반환하는 비동기 함수이므로 호출부는 반드시
+   `await confirmAction(...)` 형태로 사용해야 합니다. */
+function ensureConfirmModal() {
+  let modal = document.getElementById('app-confirm-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'app-confirm-modal';
+  modal.className = 'modal-overlay hidden';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="p-5">
+        <p id="app-confirm-message" class="text-slate-700 text-sm leading-relaxed whitespace-pre-line"></p>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end gap-2">
+        <button id="app-confirm-cancel" type="button" class="btn btn-secondary">취소</button>
+        <button id="app-confirm-ok" type="button" class="btn btn-primary">확인</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  return modal;
+}
+
 function confirmAction(message) {
-  return window.confirm(message);
+  const modal = ensureConfirmModal();
+  const msgEl = document.getElementById('app-confirm-message');
+  const okBtn = document.getElementById('app-confirm-ok');
+  const cancelBtn = document.getElementById('app-confirm-cancel');
+  msgEl.textContent = message;
+
+  return new Promise((resolve) => {
+    function cleanup(result) {
+      modal.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onOverlayClick(e) { if (e.target === modal) cleanup(false); }
+    function onKeydown(e) {
+      if (e.key === 'Escape') cleanup(false);
+      if (e.key === 'Enter') cleanup(true);
+    }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+
+    modal.classList.remove('hidden');
+    okBtn.focus();
+  });
 }
 
 /* ---------------- 사이드바 레이아웃 ---------------- */
