@@ -106,17 +106,17 @@ function getRepScopedQuotes() {
   return appliedFilter.repName ? allQuotes.filter(q => q.sales_rep_name === appliedFilter.repName) : allQuotes;
 }
 
-/* ---------------- 지표 카드 ---------------- */
-function renderStats(filtered) {
-  const total = filtered.length;
-  const issuedTotal = filtered.reduce((sum, q) => sum + (Number(q.total) || 0), 0);
-  const approved = filtered.filter(q => q.status === '계약됨').length;
-  const inProgress = filtered.filter(q => q.status === '발송됨' || q.status === '내부협의중').length;
+/* ---------------- 지표 카드: 상태별 건수/금액 ---------------- */
+const STAT_CARD_ORDER = ['전체', '계약됨', '내부협의중', '발송됨', '발송전', '만료됨'];
 
-  document.getElementById('stat-total').textContent = `${formatNumber(total)}건`;
-  document.getElementById('stat-month-total').textContent = formatCurrency(issuedTotal);
-  document.getElementById('stat-approved').textContent = `${formatNumber(approved)}건`;
-  document.getElementById('stat-inprogress').textContent = `${formatNumber(inProgress)}건`;
+function renderStats(filtered) {
+  STAT_CARD_ORDER.forEach(key => {
+    const group = key === '전체' ? filtered : filtered.filter(q => q.status === key);
+    const count = group.length;
+    const amount = group.reduce((sum, q) => sum + (Number(q.total) || 0), 0);
+    document.getElementById(`stat-${key}-count`).textContent = `${formatNumber(count)}건`;
+    document.getElementById(`stat-${key}-amount`).textContent = formatCurrency(amount);
+  });
 }
 
 /* ---------------- 최근 견적서 ---------------- */

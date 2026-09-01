@@ -87,35 +87,55 @@
       </div>
     </section>
 
-    <!-- 요약 카드 -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="card p-5">
+    <!-- 요약 카드: 상태별 건수/금액 (전체 → 계약됨 → 내부협의중 → 발송됨 → 발송전 → 만료됨) -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-8">
+      <div class="card p-4">
         <div class="flex items-center justify-between">
-          <p class="text-slate-500 text-sm font-medium">전체 견적서</p>
-          <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <p class="text-slate-500 text-xs font-semibold">전체</p>
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs"><i class="fa-solid fa-file-invoice-dollar"></i></div>
         </div>
-        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-total">0건</p>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-전체-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-전체-amount">0원</p>
       </div>
-      <div class="card p-5">
+      <div class="card p-4">
         <div class="flex items-center justify-between">
-          <p class="text-slate-500 text-sm font-medium">견적발행 금액</p>
-          <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-won-sign"></i></div>
+          <p class="text-slate-500 text-xs font-semibold">계약됨</p>
+          <div class="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center text-xs"><i class="fa-solid fa-circle-check"></i></div>
         </div>
-        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-month-total">0원</p>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-계약됨-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-계약됨-amount">0원</p>
       </div>
-      <div class="card p-5">
+      <div class="card p-4">
         <div class="flex items-center justify-between">
-          <p class="text-slate-500 text-sm font-medium">계약됨</p>
-          <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div>
+          <p class="text-slate-500 text-xs font-semibold">내부협의중</p>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs"><i class="fa-solid fa-comments"></i></div>
         </div>
-        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-approved">0건</p>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-내부협의중-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-내부협의중-amount">0원</p>
       </div>
-      <div class="card p-5">
+      <div class="card p-4">
         <div class="flex items-center justify-between">
-          <p class="text-slate-500 text-sm font-medium">진행중 (발송/협상)</p>
-          <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-hourglass-half"></i></div>
+          <p class="text-slate-500 text-xs font-semibold">발송됨</p>
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs"><i class="fa-solid fa-paper-plane"></i></div>
         </div>
-        <p class="text-2xl font-bold text-slate-800 mt-3" id="stat-inprogress">0건</p>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-발송됨-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-발송됨-amount">0원</p>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-xs font-semibold">발송전</p>
+          <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center text-xs"><i class="fa-solid fa-pen"></i></div>
+        </div>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-발송전-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-발송전-amount">0원</p>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <p class="text-slate-500 text-xs font-semibold">만료됨</p>
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center text-xs"><i class="fa-solid fa-clock"></i></div>
+        </div>
+        <p class="text-xl font-bold text-slate-800 mt-2" id="stat-만료됨-count">0건</p>
+        <p class="text-slate-400 text-xs mt-0.5" id="stat-만료됨-amount">0원</p>
       </div>
     </section>
 
