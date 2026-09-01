@@ -299,12 +299,7 @@ function renderLicenseTable() {
     <tr>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateLicenseField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateLicenseField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
-      <td>
-        <select class="input" onchange="updateLicenseField('${item.id}','classification', this.value)">
-          <option value="운영" ${item.classification === '운영' ? 'selected' : ''}>운영</option>
-          <option value="개발" ${item.classification === '개발' ? 'selected' : ''}>개발</option>
-        </select>
-      </td>
+      <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateLicenseField('${item.id}','classification', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateLicenseField('${item.id}','quantity', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateLicenseField('${item.id}','list_price', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateLicenseField('${item.id}','unit_price', this.value)"></td>
@@ -493,12 +488,7 @@ function renderHardwareTable() {
     <tr>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateHardwareField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateHardwareField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
-      <td>
-        <select class="input" onchange="updateHardwareField('${item.id}','classification', this.value)">
-          <option value="운영" ${item.classification === '운영' ? 'selected' : ''}>운영</option>
-          <option value="개발" ${item.classification === '개발' ? 'selected' : ''}>개발</option>
-        </select>
-      </td>
+      <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateHardwareField('${item.id}','classification', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateHardwareField('${item.id}','quantity', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateHardwareField('${item.id}','list_price', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateHardwareField('${item.id}','unit_price', this.value)"></td>
@@ -589,12 +579,7 @@ function renderEtcTable() {
     <tr>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateEtcField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateEtcField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
-      <td>
-        <select class="input" onchange="updateEtcField('${item.id}','classification', this.value)">
-          <option value="운영" ${item.classification === '운영' ? 'selected' : ''}>운영</option>
-          <option value="개발" ${item.classification === '개발' ? 'selected' : ''}>개발</option>
-        </select>
-      </td>
+      <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateEtcField('${item.id}','classification', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.quantity}" min="0" onchange="updateEtcField('${item.id}','quantity', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.list_price}" min="0" onchange="updateEtcField('${item.id}','list_price', this.value)"></td>
       <td><input type="number" class="input text-right" value="${item.unit_price}" min="0" onchange="updateEtcField('${item.id}','unit_price', this.value)"></td>
