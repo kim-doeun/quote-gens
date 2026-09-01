@@ -4,6 +4,10 @@
    - 발급 상태는 발급 시점에 지정하지 않음(기본값 '발송전', 이후 이력관리에서 변경)
    ============================================================ */
 
+let editQuoteId = null;
+let editQuoteNumber = null;
+let editExistingItemIds = [];
+
 let licenseItems = [];
 let serviceItems = [];
 // 03. 하드웨어 / 04. 기타: 01(S/W 라이선스)와 동일한 컬럼 구조(항목/설명/구분/수량/
@@ -18,22 +22,96 @@ let customersCache = [];
 let salesRepsCache = [];
 
 async function initQuoteNewPage() {
-  const issueInput = document.getElementById('issue-date');
-  const validInput = document.getElementById('valid-until');
-  const now = new Date();
-  issueInput.value = now.toISOString().slice(0, 10);
-  validInput.value = addDays(now, 30).toISOString().slice(0, 10);
-
-  const qn = await generateQuoteNumber();
-  document.getElementById('quote-number-preview').textContent = qn;
+  editQuoteId = new URLSearchParams(window.location.search).get('id');
 
   await Promise.all([loadCustomersForSelect(), loadProductsForSelect(), loadRatesForSelect(), loadSalesRepsForSelect()]);
   bindEvents();
+
+  if (editQuoteId) {
+    await loadQuoteForEdit(editQuoteId);
+  } else {
+    const issueInput = document.getElementById('issue-date');
+    const validInput = document.getElementById('valid-until');
+    const now = new Date();
+    issueInput.value = now.toISOString().slice(0, 10);
+    validInput.value = addDays(now, 30).toISOString().slice(0, 10);
+
+    const qn = await generateQuoteNumber();
+    document.getElementById('quote-number-preview').textContent = qn;
+  }
+
   renderLicenseTable();
   renderServiceTable();
   renderHardwareTable();
   renderEtcTable();
   updateSummary();
+}
+
+/* ---------------- 견적서 수정 모드 (견적 이력 관리에서 "발송전" 견적서 수정 진입) ---------------- */
+function mapDbItemToState(item) {
+  return {
+    id: item.id,
+    product_id: item.product_id || '',
+    name: item.name || '',
+    classification: item.classification || '운영',
+    grade: item.grade || '중급',
+    description: item.description || '',
+    remark: item.remark || '',
+    quantity: Number(item.quantity) || 0,
+    list_price: Number(item.list_price) || 0,
+    list_amount: Number(item.list_amount) || 0,
+    unit_price: Number(item.unit_price) || 0,
+    amount: Number(item.amount) || 0,
+  };
+}
+
+async function loadQuoteForEdit(id) {
+  try {
+    const [quote, itemsRes] = await Promise.all([
+      apiGet('quotes', id),
+      apiList('quote_items')
+    ]);
+
+    if (quote.status !== '발송전') {
+      showToast('발송전 상태의 견적서만 수정할 수 있습니다.', 'error');
+      setTimeout(() => { location.href = `quote-detail.html?id=${id}`; }, 900);
+      return;
+    }
+
+    const items = (itemsRes.data || []).filter(i => i.quote_id === id);
+    editExistingItemIds = items.map(i => i.id);
+    editQuoteNumber = quote.quote_number || '';
+    licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)').map(mapDbItemToState);
+    serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)').map(mapDbItemToState);
+    hardwareItems = items.filter(i => i.item_type === '하드웨어').map(mapDbItemToState);
+    etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)').map(mapDbItemToState);
+
+    document.getElementById('page-title').textContent = '견적서 수정';
+    document.getElementById('page-subtitle').textContent = '발송전 상태의 견적서만 수정할 수 있습니다. 수정 후 저장하면 기존 견적번호를 유지한 채 내용이 갱신됩니다.';
+    document.getElementById('quote-number-preview').textContent = quote.quote_number || '-';
+    document.getElementById('btn-save-quote').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 수정 사항 저장';
+
+    document.getElementById('quote-title').value = quote.quote_title || '';
+    document.getElementById('quote-reference').value = quote.reference || '';
+    document.getElementById('customer-select').value = quote.customer_id || '';
+    document.getElementById('customer-name').value = quote.customer_name || '';
+    document.getElementById('customer-contact').value = quote.customer_contact || '';
+    document.getElementById('customer-email').value = quote.customer_email || '';
+    document.getElementById('customer-phone').value = quote.customer_phone || '';
+    document.getElementById('customer-address').value = quote.customer_address || '';
+    document.getElementById('rep-name').value = quote.sales_rep_name || '';
+    document.getElementById('rep-email').value = quote.sales_rep_email || '';
+    document.getElementById('rep-phone').value = quote.sales_rep_phone || '';
+    document.getElementById('issue-date').value = (quote.issue_date || '').slice(0, 10);
+    document.getElementById('valid-until').value = (quote.valid_until || '').slice(0, 10);
+    document.getElementById('tax-rate').value = quote.tax_rate != null ? quote.tax_rate : 10;
+    document.getElementById('payment-terms').value = quote.payment_terms || '';
+    document.getElementById('notes').value = quote.notes || '';
+    document.getElementById('internal-memo').value = quote.internal_memo || '';
+  } catch (e) {
+    console.error(e);
+    showToast('견적서를 불러오지 못했습니다.', 'error');
+  }
 }
 
 async function loadCustomersForSelect() {
@@ -669,7 +747,7 @@ async function saveQuote() {
 
   try {
     const { licenseSubtotal, serviceSubtotal, hardwareSubtotal, etcSubtotal, miscSubtotal, subtotal, taxRate, taxAmount, total } = updateSummary();
-    const quoteNumber = await generateQuoteNumber();
+    const quoteNumber = editQuoteId ? editQuoteNumber : await generateQuoteNumber();
 
     const quotePayload = {
       quote_number: quoteNumber,
@@ -697,10 +775,16 @@ async function saveQuote() {
       internal_memo: document.getElementById('internal-memo').value.trim(),
     };
 
-    const created = await apiCreate('quotes', quotePayload);
+    const quoteId = editQuoteId
+      ? (await apiUpdate('quotes', editQuoteId, quotePayload)).id || editQuoteId
+      : (await apiCreate('quotes', quotePayload)).id;
+
+    if (editQuoteId) {
+      await Promise.all(editExistingItemIds.map(itemId => apiDelete('quote_items', itemId)));
+    }
 
     const licensePayloads = licenseItems.map((item, idx) => apiCreate('quote_items', {
-      quote_id: created.id,
+      quote_id: quoteId,
       item_type: '제품(S/W라이선스)',
       name: item.name,
       classification: item.classification,
@@ -715,7 +799,7 @@ async function saveQuote() {
     }));
 
     const servicePayloads = serviceItems.map((item, idx) => apiCreate('quote_items', {
-      quote_id: created.id,
+      quote_id: quoteId,
       item_type: '서비스(개발/구축)',
       name: item.name,
       grade: item.grade,
@@ -730,7 +814,7 @@ async function saveQuote() {
     }));
 
     const hardwarePayloads = hardwareItems.map((item, idx) => apiCreate('quote_items', {
-      quote_id: created.id,
+      quote_id: quoteId,
       item_type: '하드웨어',
       name: item.name,
       classification: item.classification,
@@ -745,7 +829,7 @@ async function saveQuote() {
     }));
 
     const etcPayloads = etcItems.map((item, idx) => apiCreate('quote_items', {
-      quote_id: created.id,
+      quote_id: quoteId,
       item_type: '기타',
       name: item.name,
       classification: item.classification,
@@ -761,15 +845,20 @@ async function saveQuote() {
 
     await Promise.all([...licensePayloads, ...servicePayloads, ...hardwarePayloads, ...etcPayloads]);
 
-    notifySlackQuoteIssued(created);
-
-    showToast('견적서가 성공적으로 발급되었습니다.', 'success');
-    setTimeout(() => { location.href = `quote-detail.html?id=${created.id}`; }, 700);
+    if (editQuoteId) {
+      showToast('견적서가 수정되었습니다.', 'success');
+    } else {
+      notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
+      showToast('견적서가 성공적으로 발급되었습니다.', 'success');
+    }
+    setTimeout(() => { location.href = `quote-detail.html?id=${quoteId}`; }, 700);
   } catch (e) {
     console.error(e);
     showToast('저장 중 오류가 발생했습니다.', 'error');
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 견적서 발급 및 저장';
+    btn.innerHTML = editQuoteId
+      ? '<i class="fa-solid fa-floppy-disk"></i> 수정 사항 저장'
+      : '<i class="fa-solid fa-paper-plane"></i> 견적서 발급 및 저장';
   }
 }
 

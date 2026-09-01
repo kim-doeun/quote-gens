@@ -91,6 +91,7 @@ function renderQuotesTable(list) {
       <td>
         <div class="flex items-center gap-1 whitespace-nowrap">
           <a href="quote-detail.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="상세보기"><i class="fa-solid fa-eye"></i></a>
+          ${q.status === '발송전' ? `<a href="quote-new.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="수정 (발송전 상태만 수정 가능)"><i class="fa-solid fa-pen"></i></a>` : ''}
           <button onclick="deleteQuote('${q.id}')" class="btn-ghost btn text-rose-500" style="padding:0.35rem 0.55rem;" title="삭제"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
