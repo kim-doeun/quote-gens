@@ -207,6 +207,7 @@ const NAV_ITEMS = [
   { href: 'customers.html', icon: 'fa-building-user', label: '고객사 관리' },
   { href: 'products.html', icon: 'fa-box-open', label: 'S/W 라이선스 관리' },
   { href: 'labor-rates.html', icon: 'fa-user-gear', label: '인건비 단가 관리' },
+  { href: 'sales-reps.html', icon: 'fa-user-tie', label: '영업대표 관리' },
 ];
 
 function renderSidebar(activePage) {
@@ -234,10 +235,6 @@ function renderSidebar(activePage) {
       <nav class="p-3 flex flex-col gap-1">
         ${items}
       </nav>
-      <div class="p-4 mt-4 mx-3 rounded-xl bg-white/5 hidden lg:block collapsible-label">
-        <p class="text-slate-400 text-xs mb-1 whitespace-nowrap">로그인 계정</p>
-        <p class="text-white text-sm font-semibold whitespace-nowrap">영업대표 · Sales Rep</p>
-      </div>
     </aside>`;
 
   applySidebarCollapsedState();

@@ -265,6 +265,8 @@
         "options": [
           "제품(S/W라이선스)",
           "서비스(개발/구축)",
+          "하드웨어",
+          "기타",
           "기타(HW/3rd-party 등)"
         ]
       },
@@ -276,7 +278,7 @@
       {
         "name": "classification",
         "type": "text",
-        "description": "구분 - 제품 항목: 운영/개발, 기타 항목: 하드웨어/3rd-party S/W/외주/기타",
+        "description": "구분 - 운영/개발 (01.S/W라이선스, 03.하드웨어, 04.기타 공통)",
         "options": [
           "운영",
           "개발",
@@ -377,6 +379,31 @@
         "name": "description",
         "type": "text",
         "description": "등급 설명"
+      }
+    ]
+  },
+  {
+    "name": "sales_reps",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "견적담당(영업대표) 고유 ID"
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "description": "영업대표명"
+      },
+      {
+        "name": "email",
+        "type": "text",
+        "description": "이메일"
+      },
+      {
+        "name": "phone",
+        "type": "text",
+        "description": "연락처"
       }
     ]
   }

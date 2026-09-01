@@ -82,6 +82,14 @@
         <!-- 견적담당(영업대표) 정보 -->
         <section class="card p-5">
           <h2 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-tie text-indigo-500"></i>견적담당(영업대표) 정보</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 mb-1.5">견적담당정보에서 선택</label>
+              <select id="rep-select" class="input">
+                <option value="">-- 등록된 견적담당정보에서 선택 (또는 직접 입력) --</option>
+              </select>
+            </div>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-500 mb-1.5">견적담당 이름 *</label>
@@ -162,21 +170,66 @@
           </div>
         </section>
 
-        <!-- 03. 기타 품목: 구분(하드웨어/3rd-party S/W/외주/기타)은 01·02와 같은 "표 단위"이며,
-             표 안의 컬럼이 아닙니다. 유형을 선택하면 그 유형만을 위한 표가 새로 생성됩니다. -->
+        <!-- 03. 하드웨어 -->
         <section class="card p-5">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box text-indigo-500"></i>03. 기타 품목</h2>
-            <select id="misc-category-select" class="input" style="width:auto; max-width:220px; padding:0.45rem 0.7rem;">
-              <option value="">+ 품목 유형 선택</option>
-            </select>
+            <h2 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-microchip text-indigo-500"></i>03. 하드웨어</h2>
+            <button id="btn-add-hardware" class="btn btn-secondary text-xs py-2"><i class="fa-solid fa-plus"></i> 항목 추가</button>
           </div>
-          <p class="text-slate-400 text-xs mb-4">하드웨어, 3rd-party S/W, 외주, 기타 중 필요한 품목 유형을 선택하면 해당 유형만의 표가 새로 생성됩니다. 01·02와 마찬가지로 유형별 표에서 항목을 자유롭게 추가·입력하세요.</p>
-          <div id="misc-categories-wrap" class="flex flex-col gap-4"></div>
-          <p id="no-misc-msg" class="text-center text-slate-400 text-sm py-6">아직 추가된 기타 품목 유형이 없습니다. 위에서 유형을 선택해 표를 추가하세요.</p>
+          <div class="table-wrap">
+            <table class="data-table compact-table" id="hardware-table">
+              <thead>
+                <tr>
+                  <th style="width:15%">항목</th>
+                  <th style="width:18%">설명</th>
+                  <th style="width:7%">구분</th>
+                  <th style="width:5%" class="text-right">수량</th>
+                  <th style="width:10%" class="text-right">소비자단가</th>
+                  <th style="width:10%" class="text-right">제안단가</th>
+                  <th style="width:10%" class="text-right">제안금액</th>
+                  <th style="width:14%">비고</th>
+                  <th style="width:4%"></th>
+                </tr>
+              </thead>
+              <tbody id="hardware-body"></tbody>
+            </table>
+          </div>
+          <p id="no-hardware-msg" class="text-center text-slate-400 text-sm py-6">아직 추가된 하드웨어 항목이 없습니다.</p>
           <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
             <div class="w-full sm:w-72 space-y-1.5 text-sm">
-              <div class="flex justify-between text-slate-600"><span>기타 품목 제안금액 (VAT 제외)</span><span id="misc-subtotal-view" class="font-semibold">0원</span></div>
+              <div class="flex justify-between text-slate-600"><span>하드웨어 제안금액 (VAT 제외)</span><span id="hardware-subtotal-view" class="font-semibold">0원</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04. 기타 -->
+        <section class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box text-indigo-500"></i>04. 기타</h2>
+            <button id="btn-add-etc" class="btn btn-secondary text-xs py-2"><i class="fa-solid fa-plus"></i> 항목 추가</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table compact-table" id="etc-table">
+              <thead>
+                <tr>
+                  <th style="width:15%">항목</th>
+                  <th style="width:18%">설명</th>
+                  <th style="width:7%">구분</th>
+                  <th style="width:5%" class="text-right">수량</th>
+                  <th style="width:10%" class="text-right">소비자단가</th>
+                  <th style="width:10%" class="text-right">제안단가</th>
+                  <th style="width:10%" class="text-right">제안금액</th>
+                  <th style="width:14%">비고</th>
+                  <th style="width:4%"></th>
+                </tr>
+              </thead>
+              <tbody id="etc-body"></tbody>
+            </table>
+          </div>
+          <p id="no-etc-msg" class="text-center text-slate-400 text-sm py-6">아직 추가된 기타 항목이 없습니다.</p>
+          <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+            <div class="w-full sm:w-72 space-y-1.5 text-sm">
+              <div class="flex justify-between text-slate-600"><span>기타 제안금액 (VAT 제외)</span><span id="etc-subtotal-view" class="font-semibold">0원</span></div>
             </div>
           </div>
         </section>
@@ -220,7 +273,8 @@
           <div class="space-y-2 text-sm border-t border-b border-slate-100 py-4 mb-4">
             <div class="flex justify-between text-slate-600"><span>01. S/W 제안금액</span><span id="summary-license" class="font-semibold">0원</span></div>
             <div class="flex justify-between text-slate-600"><span>02. 개발비 제안금액</span><span id="summary-service" class="font-semibold">0원</span></div>
-            <div class="flex justify-between text-slate-600"><span>03. 기타 품목 제안금액</span><span id="summary-misc" class="font-semibold">0원</span></div>
+            <div class="flex justify-between text-slate-600"><span>03. 하드웨어 제안금액</span><span id="summary-hardware" class="font-semibold">0원</span></div>
+            <div class="flex justify-between text-slate-600"><span>04. 기타 제안금액</span><span id="summary-etc" class="font-semibold">0원</span></div>
             <div class="flex justify-between text-slate-600"><span>S/W 할인율</span><span id="summary-discount-rate" class="font-semibold">0%</span></div>
             <div class="flex justify-between text-slate-700 font-semibold pt-1 border-t border-dashed border-slate-200"><span>전체 (VAT 제외)</span><span id="summary-subtotal">0원</span></div>
             <div class="flex justify-between text-slate-600 items-center">
@@ -297,7 +351,7 @@
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-500 mb-1.5">비고</label>
-        <input type="text" id="modal-license-remark" class="input" placeholder="예: 신규/갱신, 무상 제공 등">
+        <textarea id="modal-license-remark" class="input" rows="2" style="resize:vertical;" placeholder="예: 신규/갱신, 무상 제공 등"></textarea>
       </div>
     </div>
     <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
@@ -358,12 +412,118 @@
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-500 mb-1.5">비고</label>
-        <input type="text" id="modal-service-remark" class="input" placeholder="예: 추가 투입, 특이사항 등">
+        <textarea id="modal-service-remark" class="input" rows="2" style="resize:vertical;" placeholder="예: 추가 투입, 특이사항 등"></textarea>
       </div>
     </div>
     <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
       <button onclick="closeServiceModal()" class="btn btn-secondary">취소</button>
       <button onclick="confirmAddService()" class="btn btn-primary">추가하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 03. 하드웨어 항목 추가 모달 -->
+<div id="hardware-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 520px;">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-800">하드웨어 항목 추가</h3>
+      <button onclick="closeHardwareModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-5 flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">항목명 *</label>
+        <input type="text" id="modal-hardware-name" class="input" placeholder="예: 문서 스캐너">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">구분</label>
+        <select id="modal-hardware-classification" class="input">
+          <option value="운영">운영</option>
+          <option value="개발">개발</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">설명 (줄바꿈 가능)</label>
+        <textarea id="modal-hardware-desc" class="input" rows="3" placeholder="설명"></textarea>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">수량</label>
+          <input type="number" id="modal-hardware-qty" class="input text-right" value="1" min="0">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">소비자단가(LP)</label>
+          <input type="number" id="modal-hardware-listprice" class="input text-right" value="0" min="0">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">할인율(%)</label>
+          <input type="number" id="modal-hardware-discount" class="input text-right" value="0" min="0" max="100" step="0.1">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">제안단가(P)</label>
+          <input type="number" id="modal-hardware-price" class="input text-right" value="0" min="0">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">비고</label>
+        <textarea id="modal-hardware-remark" class="input" rows="2" style="resize:vertical;" placeholder="예: 배송/설치 관련 안내 등"></textarea>
+      </div>
+    </div>
+    <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
+      <button onclick="closeHardwareModal()" class="btn btn-secondary">취소</button>
+      <button onclick="confirmAddHardware()" class="btn btn-primary">추가하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 04. 기타 항목 추가 모달 -->
+<div id="etc-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 520px;">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-800">기타 항목 추가</h3>
+      <button onclick="closeEtcModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-5 flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">항목명 *</label>
+        <input type="text" id="modal-etc-name" class="input" placeholder="예: 외주 인력, 3rd-party S/W 등">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">구분</label>
+        <select id="modal-etc-classification" class="input">
+          <option value="운영">운영</option>
+          <option value="개발">개발</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">설명 (줄바꿈 가능)</label>
+        <textarea id="modal-etc-desc" class="input" rows="3" placeholder="설명"></textarea>
+      </div>
+      <div class="grid grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">수량</label>
+          <input type="number" id="modal-etc-qty" class="input text-right" value="1" min="0">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">소비자단가(LP)</label>
+          <input type="number" id="modal-etc-listprice" class="input text-right" value="0" min="0">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">할인율(%)</label>
+          <input type="number" id="modal-etc-discount" class="input text-right" value="0" min="0" max="100" step="0.1">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">제안단가(P)</label>
+          <input type="number" id="modal-etc-price" class="input text-right" value="0" min="0">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">비고</label>
+        <textarea id="modal-etc-remark" class="input" rows="2" style="resize:vertical;" placeholder="예: 특이사항 등"></textarea>
+      </div>
+    </div>
+    <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
+      <button onclick="closeEtcModal()" class="btn btn-secondary">취소</button>
+      <button onclick="confirmAddEtc()" class="btn btn-primary">추가하기</button>
     </div>
   </div>
 </div>
