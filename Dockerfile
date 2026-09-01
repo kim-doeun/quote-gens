@@ -18,7 +18,7 @@ COPY css ./css
 COPY js ./js
 COPY images ./images
 COPY .tables ./.tables
-COPY index.html customers.html labor-rates.html products.html quote-detail.html quote-new.html quotes.html ./
+COPY index.html customers.html labor-rates.html products.html quote-detail.html quote-new.html quotes.html sales-reps.html ./
 
 ENV NODE_ENV=production \
     PORT=3000 \
