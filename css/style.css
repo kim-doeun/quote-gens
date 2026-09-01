@@ -98,6 +98,92 @@ body {
   box-shadow: 0 1px 3px rgba(15,23,42,0.04);
 }
 
+/* 대시보드 필터 바 */
+.filter-toggle-group {
+  display: inline-flex;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+.filter-toggle-btn {
+  background: #fff;
+  color: #64748b;
+  border: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-toggle-btn + .filter-toggle-btn { border-left: 1px solid #e2e8f0; }
+.filter-toggle-btn.active { background: var(--brand-primary); color: #fff; }
+
+.filter-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 40;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 12px 32px rgba(15,23,42,0.14);
+  padding: 1rem;
+  min-width: 280px;
+}
+
+.month-cell {
+  padding: 0.5rem 0;
+  text-align: center;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.month-cell:hover { background: #eef2ff; }
+.month-cell.active { background: var(--brand-primary); color: #fff; }
+
+.preset-pill {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.preset-pill:hover { background: #e2e8f0; }
+.preset-pill.active { background: var(--brand-primary); color: #fff; }
+
+.rep-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: #334155;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.rep-option:hover { background: #f8fafc; }
+.rep-option.active { background: #eef2ff; color: var(--brand-primary); font-weight: 700; }
+.rep-option .rep-option-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  flex-shrink: 0;
+}
+.rep-option.active .rep-option-dot {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+}
+
 /* 상태 배지 */
 .badge {
   display: inline-flex;
