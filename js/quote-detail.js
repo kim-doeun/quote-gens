@@ -211,17 +211,21 @@ function renderServiceSection(items, taxRate) {
   </div>`;
 }
 
-/* 03. 기타 품목 섹션 렌더
-   "구분"(하드웨어/3rd-party S/W/외주/기타)은 표의 컬럼이 아니라 01·02와 같은
-   레벨의 "표 단위" 구분입니다. 존재하는 구분(classification)별로 별도의
-   표를 순서대로 렌더링합니다. */
-function renderMiscCategoryTable(classification, items, taxRate) {
+/* 03. 하드웨어 / 04. 기타 섹션 렌더
+   두 섹션 모두 01. S/W 라이선스와 동일한 9컬럼(항목/설명/구분/수량/소비자단가/
+   제안단가/제안금액/비고) 구조를 사용하는 고정 섹션입니다. 분류(classification)
+   선택에 따라 표가 동적으로 늘어나던 이전 방식과 달리, item_type
+   ('하드웨어' / '기타')으로 필터링된 항목을 각각 하나의 표에 그대로 렌더링합니다. */
+function renderFixedItemSection(title, items, taxRate, nameBgClass) {
+  if (!items.length) return '';
+
   const rows = items.map(item => `
     <tr>
-      <td class="border border-slate-300 font-semibold text-slate-800 bg-violet-50" style="vertical-align:top;">${item.name || '-'}</td>
+      <td class="border border-slate-300 font-semibold text-slate-800 ${nameBgClass}" style="vertical-align:top;">${item.name || '-'}</td>
       <td class="border border-slate-300" style="vertical-align:top;">
         <p class="text-[11px] text-slate-600 whitespace-pre-line leading-relaxed">${nl2br(item.description)}</p>
       </td>
+      <td class="border border-slate-300 text-center">${item.classification || '-'}</td>
       <td class="border border-slate-300 text-center whitespace-nowrap">${formatNumber(item.quantity)}</td>
       <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_price ? formatCurrency(item.list_price) : '-'}</td>
       <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_amount ? formatCurrency(item.list_amount) : '-'}</td>
@@ -235,20 +239,21 @@ function renderMiscCategoryTable(classification, items, taxRate) {
   const withTax = Math.round(subtotal * (1 + (taxRate || 0) / 100));
 
   return `
-  <div class="mb-6">
-    <h4 class="text-[15px] font-bold text-slate-700 mb-2">기타 품목 - ${classification}</h4>
+  <div class="mb-8">
+    <h3 class="text-lg font-extrabold text-slate-800 mb-3">${title}</h3>
     <div class="table-wrap">
       <table class="w-full text-[13px] border border-slate-300" style="border-collapse:collapse;">
         <thead>
           <tr class="bg-sky-50 text-slate-600">
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:14%;">항 목</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:32%;">설명</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:6%;">수량<br>(Q)</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:11%;">소비자단가<br>(LP)</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:11%;">소비자금액<br>(Q*LP)</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:11%;">제안단가<br>(P)</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:11%;">제안금액<br>(Q*P)</th>
-            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">비고</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:12%;">항 목</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:28%;">설명</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:6%;">구분</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:5%;">수량<br>(Q)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자단가<br>(LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자금액<br>(Q*LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안단가<br>(P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안금액<br>(Q*P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:9%;">비고</th>
           </tr>
         </thead>
         <tbody>
@@ -256,11 +261,11 @@ function renderMiscCategoryTable(classification, items, taxRate) {
         </tbody>
         <tfoot>
           <tr class="bg-emerald-50">
-            <td colspan="6" class="border border-slate-300 py-1 px-2 text-right font-semibold">${classification} 제안 금액 (VAT 제외)</td>
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">${title} 제안 금액 (VAT 제외)</td>
             <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(subtotal)}</td>
           </tr>
           <tr class="bg-emerald-50">
-            <td colspan="6" class="border border-slate-300 py-1 px-2 text-right font-semibold">${classification} 제안 금액 (VAT 포함)</td>
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">${title} 제안 금액 (VAT 포함)</td>
             <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(withTax)}</td>
           </tr>
         </tfoot>
@@ -269,45 +274,20 @@ function renderMiscCategoryTable(classification, items, taxRate) {
   </div>`;
 }
 
-function renderMiscSection(items, taxRate) {
-  if (!items.length) return '';
+function renderHardwareSection(items, taxRate) {
+  return renderFixedItemSection('03. 하드웨어', items, taxRate, 'bg-violet-50');
+}
 
-  // classification 값이 처음 등장하는 순서대로 그룹화하여 유형별 표를 분리 렌더링
-  const order = [];
-  const groups = {};
-  items.forEach(item => {
-    const key = item.classification || '기타';
-    if (!groups[key]) { groups[key] = []; order.push(key); }
-    groups[key].push(item);
-  });
-
-  const subtotal = items.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
-  const withTax = Math.round(subtotal * (1 + (taxRate || 0) / 100));
-
-  return `
-  <div class="mb-8">
-    <h3 class="text-lg font-extrabold text-slate-800 mb-3">03. 기타 품목</h3>
-    ${order.map(key => renderMiscCategoryTable(key, groups[key], taxRate)).join('')}
-    <div class="flex justify-end">
-      <div class="w-full sm:w-80 rounded-lg overflow-hidden border border-slate-300">
-        <div class="flex justify-between items-center px-3 py-2 bg-emerald-50">
-          <span class="text-sm font-semibold text-slate-700">기타 품목 제안 금액 합계 (VAT 제외)</span>
-          <span class="text-sm font-bold text-slate-800 whitespace-nowrap">${formatCurrency(subtotal)}</span>
-        </div>
-        <div class="flex justify-between items-center px-3 py-2 bg-emerald-50 border-t border-slate-200">
-          <span class="text-sm font-semibold text-slate-700">기타 품목 제안 금액 합계 (VAT 포함)</span>
-          <span class="text-sm font-bold text-slate-800 whitespace-nowrap">${formatCurrency(withTax)}</span>
-        </div>
-      </div>
-    </div>
-  </div>`;
+function renderEtcSection(items, taxRate) {
+  return renderFixedItemSection('04. 기타', items, taxRate, 'bg-teal-50');
 }
 
 
 function renderQuoteDocument(q, items) {
   const licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)');
   const serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)');
-  const miscItems = items.filter(i => i.item_type === '기타(HW/3rd-party 등)');
+  const hardwareItems = items.filter(i => i.item_type === '하드웨어');
+  const etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)');
   const taxRate = q.tax_rate || 0;
 
   document.getElementById('quote-content').innerHTML = `
@@ -378,7 +358,8 @@ function renderQuoteDocument(q, items) {
 
     ${renderLicenseSection(licenseItems, taxRate)}
     ${renderServiceSection(serviceItems, taxRate)}
-    ${renderMiscSection(miscItems, taxRate)}
+    ${renderHardwareSection(hardwareItems, taxRate)}
+    ${renderEtcSection(etcItems, taxRate)}
 
     <div class="flex justify-end mb-8">
       <div class="w-full md:w-96 rounded-xl overflow-hidden border-2 border-slate-800">

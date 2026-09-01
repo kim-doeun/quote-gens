@@ -28,6 +28,7 @@ const PAGES = [
   'quote-detail.html',
   'quote-new.html',
   'quotes.html',
+  'sales-reps.html',
 ];
 
 for (const page of PAGES) {

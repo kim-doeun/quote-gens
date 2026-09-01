@@ -193,11 +193,12 @@ function buildCompanyInfoTable(sheet, startRow, quote) {
   return r0 + rowsDef.length;
 }
 
-/* ---------------- 섹션 3: 항목 표 (01.S/W라이선스 / 02.개발비 / 03.기타품목 공용) ----------------
-   물리적으로는 항상 9개 컬럼(A~I)을 사용하는 고정 그리드이지만, 논리 컬럼 수가
-   9개보다 적은 경우(예: 03. 기타 품목은 "구분" 컬럼이 없어 8개)에는 opts.colSpans로
-   각 논리 컬럼이 차지할 물리 컬럼 수를 지정할 수 있습니다(합이 9가 되어야 함).
-   생략 시 headerLabels 개수만큼 전부 1칸씩 차지합니다(01/02와 동일하게 동작). */
+/* ---------------- 섹션 3: 항목 표 (01.S/W라이선스 / 02.개발비 / 03.하드웨어 / 04.기타 공용) ----------------
+   물리적으로는 항상 9개 컬럼(A~I)을 사용하는 고정 그리드입니다. 01~04 모든
+   섹션이 동일하게 9개의 논리 컬럼(항목/설명/구분/수량/소비자단가/소비자금액/
+   제안단가/제안금액/비고)을 사용하므로 opts.colSpans는 기본값(전부 1칸)이면
+   충분합니다. 논리 컬럼 수가 9개보다 적은 특수한 경우에만 opts.colSpans로
+   각 논리 컬럼이 차지할 물리 컬럼 수를 지정할 수 있습니다(합이 9가 되어야 함). */
 function buildItemSection(sheet, startRow, opts) {
   const { title, items, headerLabels, numFmts, rowMapper, subtotalLabel, taxRate } = opts;
   const colSpans = opts.colSpans || headerLabels.map(() => 1);
@@ -371,7 +372,8 @@ async function buildQuoteWorkbook(quote, items) {
 
   const licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)');
   const serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)');
-  const miscItems = items.filter(i => i.item_type === '기타(HW/3rd-party 등)');
+  const hardwareItems = items.filter(i => i.item_type === '하드웨어');
+  const etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)');
   const taxRate = Number(quote.tax_rate) || 0;
 
   let row = 1;
@@ -414,37 +416,42 @@ async function buildQuoteWorkbook(quote, items) {
     row += 1;
   }
 
-  // 03. 기타 품목: "구분"(하드웨어/3rd-party S/W/외주/기타)은 01·02와 같은 레벨의
-  // "표 단위" 구분이므로, classification 값이 처음 등장하는 순서대로 그룹화하여
-  // 유형별로 별도의 표(제목: "03. 기타 품목 - <구분>")를 만듭니다. 구분 컬럼은 없습니다.
-  if (miscItems.length) {
-    const miscOrder = [];
-    const miscGroups = {};
-    miscItems.forEach(item => {
-      const key = item.classification || '기타';
-      if (!miscGroups[key]) { miscGroups[key] = []; miscOrder.push(key); }
-      miscGroups[key].push(item);
+  // 03. 하드웨어 / 04. 기타: 01. S/W 라이선스와 동일한 9컬럼(항목/설명/구분/수량/
+  // 소비자단가/제안단가/제안금액/비고) 구조를 사용하는 고정 섹션입니다. classification
+  // 선택에 따라 표가 늘어나던 이전 방식과 달리 item_type으로 필터링된 항목을
+  // 각각 하나의 표에 그대로 렌더링합니다.
+  if (hardwareItems.length) {
+    row = buildItemSection(sheet, row, {
+      title: '03. 하드웨어',
+      items: hardwareItems,
+      headerLabels: ['항목', '설명', '구분', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
+      numFmts: [null, null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
+      rowMapper: item => [
+        item.name || '-', item.description || '-', item.classification || '-',
+        Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
+        Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
+      ],
+      subtotalLabel: '03. 하드웨어 제안금액',
+      taxRate,
     });
+    row += 1;
+  }
 
-    miscOrder.forEach(key => {
-      row = buildItemSection(sheet, row, {
-        title: `03. 기타 품목 - ${key}`,
-        items: miscGroups[key],
-        headerLabels: ['항목', '설명', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
-        // 구분 컬럼이 없어 논리 컬럼이 8개뿐이므로, 남는 1개 물리 컬럼을 "설명" 칸에 병합 배정
-        // (1:항목, 2:설명, 1:수량, 1:소비자단가, 1:소비자금액, 1:제안단가, 1:제안금액, 1:비고 = 9)
-        colSpans: [1, 2, 1, 1, 1, 1, 1, 1],
-        numFmts: [null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
-        rowMapper: item => [
-          item.name || '-', item.description || '-',
-          Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
-          Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
-        ],
-        subtotalLabel: `${key} 제안금액`,
-        taxRate,
-      });
-      row += 1;
+  if (etcItems.length) {
+    row = buildItemSection(sheet, row, {
+      title: '04. 기타',
+      items: etcItems,
+      headerLabels: ['항목', '설명', '구분', '수량(Q)', '소비자단가(LP)', '소비자금액(Q*LP)', '제안단가(P)', '제안금액(Q*P)', '비고'],
+      numFmts: [null, null, null, '#,##0', '#,##0"원"', '#,##0"원"', '#,##0"원"', '#,##0"원"', null],
+      rowMapper: item => [
+        item.name || '-', item.description || '-', item.classification || '-',
+        Number(item.quantity) || 0, Number(item.list_price) || 0, Number(item.list_amount) || 0,
+        Number(item.unit_price) || 0, Number(item.amount) || 0, item.remark || '-',
+      ],
+      subtotalLabel: '04. 기타 제안금액',
+      taxRate,
     });
+    row += 1;
   }
 
   row = buildGrandTotal(sheet, row, quote);
