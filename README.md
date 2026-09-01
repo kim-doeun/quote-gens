@@ -284,7 +284,7 @@ docker compose exec app node server/seed.js
 | `server/routes/tables.js` | GenSpark Table API와 동일한 요청/응답 형식(GET/POST/PATCH/DELETE, `{ data: [...] }` 등)의 범용 CRUD 라우터 |
 | `server/routes/slack.js` | 견적서 발급 알림을 Slack Incoming Webhook으로 전송하는 서버 프록시 |
 | `server/seed.js` | 빈 테이블에만 샘플 데이터를 채우는 멱등(idempotent) 시드 스크립트 |
-| `Dockerfile` / `docker-compose.yml` | 컨테이너 빌드 및 실행 정의. SQLite 데이터는 `quote-gens-data` 볼륨(`/data/app.db`)에 영속 저장됨 |
+| `Dockerfile` / `docker-compose.yml` | 컨테이너 빌드 및 실행 정의. SQLite 데이터는 `lomin-quote-data` 볼륨(`/data/app.db`)에 영속 저장됨 |
 
 ### 8.3 환경변수
 
@@ -304,7 +304,7 @@ docker compose exec app node server/seed.js
 
 ### 8.5 데이터 백업/복원
 
-SQLite 파일 하나(`quote-gens-data` 볼륨의 `app.db`)가 전체 데이터입니다.
+SQLite 파일 하나(`lomin-quote-data` 볼륨의 `app.db`)가 전체 데이터입니다.
 
 ```bash
 # 백업
@@ -312,7 +312,7 @@ docker compose exec app sh -c 'cat /data/app.db' > backup.db
 
 # 복원 (컨테이너 정지 후 볼륨에 파일을 덮어쓰기)
 docker compose down
-docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)":/backup alpine \
+docker run --rm -v quote-gens_lomin-quote-data:/data -v "$(pwd)":/backup alpine \
   cp /backup/backup.db /data/app.db
 docker compose up -d
 ```

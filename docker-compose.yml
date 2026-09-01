@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: quote-gens:latest
+    image: lomin-quote:latest
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -10,7 +10,7 @@ services:
       DB_PATH: /data/app.db
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
     volumes:
-      - quote-gens-data:/data
+      - lomin-quote-data:/data
 
 volumes:
-  quote-gens-data:
+  lomin-quote-data:
