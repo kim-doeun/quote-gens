@@ -50,11 +50,13 @@
         <section class="card p-5">
           <h2 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-building-user text-indigo-500"></i>고객 정보</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="sm:col-span-2">
+            <div class="sm:col-span-2 relative">
               <label class="block text-xs font-semibold text-slate-500 mb-1.5">고객사 선택</label>
-              <select id="customer-select" class="input">
-                <option value="">-- 등록된 고객사에서 선택 (또는 직접 입력) --</option>
-              </select>
+              <input type="hidden" id="customer-select">
+              <input type="text" id="customer-search-input" class="input" autocomplete="off" placeholder="회사명 또는 담당자명으로 검색 (또는 아래 직접 입력)">
+              <div id="customer-select-popover" class="filter-popover hidden" style="width:100%; max-height:280px; overflow-y:auto;">
+                <div id="customer-select-list" class="flex flex-col gap-1"></div>
+              </div>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-500 mb-1.5">회사명 *</label>

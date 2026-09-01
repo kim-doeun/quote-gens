@@ -94,6 +94,8 @@ async function loadQuoteForEdit(id) {
     document.getElementById('quote-title').value = quote.quote_title || '';
     document.getElementById('quote-reference').value = quote.reference || '';
     document.getElementById('customer-select').value = quote.customer_id || '';
+    const prefilledCustomer = customersCache.find(c => c.id === quote.customer_id);
+    document.getElementById('customer-search-input').value = prefilledCustomer ? customerOptionLabel(prefilledCustomer) : (quote.customer_name || '');
     document.getElementById('customer-name').value = quote.customer_name || '';
     document.getElementById('customer-contact').value = quote.customer_contact || '';
     document.getElementById('customer-email').value = quote.customer_email || '';
@@ -118,16 +120,77 @@ async function loadCustomersForSelect() {
   try {
     const { data } = await apiList('customers');
     customersCache = data || [];
-    const sel = document.getElementById('customer-select');
-    customersCache.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      opt.textContent = c.company_name;
-      sel.appendChild(opt);
-    });
   } catch (e) {
     console.error(e);
   }
+}
+
+/* ---------------- 고객사 검색형 선택 ----------------
+   네이티브 <select>는 옵션이 많아지면 검색이 안 되고 "회사명 (담당자명)"처럼
+   두 줄 정보를 함께 보여주기도 어려워, 검색 입력 + 팝오버 목록 조합으로 대체합니다. */
+function customerOptionLabel(c) {
+  return c.contact_name ? `${c.company_name} (${c.contact_name})` : (c.company_name || '(회사명 없음)');
+}
+
+function bindCustomerSearchEvents() {
+  const input = document.getElementById('customer-search-input');
+  const popover = document.getElementById('customer-select-popover');
+
+  input.addEventListener('focus', () => {
+    renderCustomerOptions(input.value);
+    popover.classList.remove('hidden');
+  });
+  input.addEventListener('input', () => {
+    renderCustomerOptions(input.value);
+    popover.classList.remove('hidden');
+  });
+  popover.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => popover.classList.add('hidden'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') popover.classList.add('hidden'); });
+}
+
+function renderCustomerOptions(query) {
+  const list = document.getElementById('customer-select-list');
+  const q = (query || '').trim().toLowerCase();
+  const matches = q
+    ? customersCache.filter(c => (c.company_name || '').toLowerCase().includes(q) || (c.contact_name || '').toLowerCase().includes(q))
+    : customersCache;
+
+  const items = [];
+  if (!q) {
+    items.push(`<button type="button" class="rep-option" data-clear="1"><span class="rep-option-dot"></span>직접 입력 (선택 안 함)</button>`);
+  }
+  items.push(...matches.map(c => `<button type="button" class="rep-option" data-id="${escapeAttr(c.id)}"><span class="rep-option-dot"></span>${escapeHtml(customerOptionLabel(c))}</button>`));
+
+  list.innerHTML = items.length ? items.join('') : `<p class="text-slate-400 text-xs px-1 py-2">일치하는 고객사가 없습니다.</p>`;
+
+  list.querySelectorAll('.rep-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.clear) {
+        clearCustomerSelection();
+      } else {
+        selectCustomer(btn.dataset.id);
+      }
+      document.getElementById('customer-select-popover').classList.add('hidden');
+    });
+  });
+}
+
+function selectCustomer(id) {
+  const c = customersCache.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('customer-select').value = c.id;
+  document.getElementById('customer-search-input').value = customerOptionLabel(c);
+  document.getElementById('customer-name').value = c.company_name || '';
+  document.getElementById('customer-contact').value = c.contact_name ? `${c.contact_name} ${c.contact_position || ''}`.trim() : '';
+  document.getElementById('customer-email').value = c.email || '';
+  document.getElementById('customer-phone').value = c.phone || '';
+  document.getElementById('customer-address').value = c.address || '';
+}
+
+function clearCustomerSelection() {
+  document.getElementById('customer-select').value = '';
+  document.getElementById('customer-search-input').value = '';
 }
 
 async function loadProductsForSelect() {
@@ -179,15 +242,7 @@ async function loadSalesRepsForSelect() {
 }
 
 function bindEvents() {
-  document.getElementById('customer-select').addEventListener('change', (e) => {
-    const c = customersCache.find(x => x.id === e.target.value);
-    if (!c) return;
-    document.getElementById('customer-name').value = c.company_name || '';
-    document.getElementById('customer-contact').value = c.contact_name ? `${c.contact_name} ${c.contact_position || ''}`.trim() : '';
-    document.getElementById('customer-email').value = c.email || '';
-    document.getElementById('customer-phone').value = c.phone || '';
-    document.getElementById('customer-address').value = c.address || '';
-  });
+  bindCustomerSearchEvents();
 
   document.getElementById('rep-select').addEventListener('change', (e) => {
     const r = salesRepsCache.find(x => x.id === e.target.value);
