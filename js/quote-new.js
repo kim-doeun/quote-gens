@@ -132,21 +132,57 @@ function customerOptionLabel(c) {
   return c.contact_name ? `${c.company_name} (${c.contact_name})` : (c.company_name || '(회사명 없음)');
 }
 
+let customerOptionActiveIndex = -1;
+
 function bindCustomerSearchEvents() {
   const input = document.getElementById('customer-search-input');
   const popover = document.getElementById('customer-select-popover');
 
-  input.addEventListener('focus', () => {
+  const openPopover = () => {
+    customerOptionActiveIndex = -1;
     renderCustomerOptions(input.value);
     popover.classList.remove('hidden');
+  };
+
+  input.addEventListener('focus', openPopover);
+  input.addEventListener('input', openPopover);
+  // 클릭 시에도 항상 열고(이미 포커스된 상태에서 다시 클릭해 재오픈하는 경우 대응),
+  // 이 click이 document까지 버블링되어 "바깥 클릭 시 닫기" 핸들러가 열리자마자 바로
+  // 닫아버리지 않도록 전파를 막습니다(막지 않으면 길게 눌러 드래그로 선택할 때만
+  // 동작하는 문제가 있었습니다).
+  input.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openPopover();
   });
-  input.addEventListener('input', () => {
-    renderCustomerOptions(input.value);
-    popover.classList.remove('hidden');
+  input.addEventListener('keydown', (e) => {
+    if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return;
+    const options = Array.from(document.querySelectorAll('#customer-select-list .rep-option'));
+    if (!options.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      popover.classList.remove('hidden');
+      customerOptionActiveIndex = Math.min(customerOptionActiveIndex + 1, options.length - 1);
+      highlightCustomerOption(options);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      customerOptionActiveIndex = Math.max(customerOptionActiveIndex - 1, 0);
+      highlightCustomerOption(options);
+    } else if (e.key === 'Enter' && customerOptionActiveIndex >= 0) {
+      e.preventDefault();
+      options[customerOptionActiveIndex].click();
+    }
   });
+
   popover.addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', () => popover.classList.add('hidden'));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') popover.classList.add('hidden'); });
+}
+
+function highlightCustomerOption(options) {
+  options.forEach((el, i) => el.classList.toggle('active', i === customerOptionActiveIndex));
+  const active = options[customerOptionActiveIndex];
+  if (active) active.scrollIntoView({ block: 'nearest' });
 }
 
 function renderCustomerOptions(query) {
