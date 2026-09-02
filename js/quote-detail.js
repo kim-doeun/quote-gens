@@ -44,6 +44,7 @@ async function initQuoteDetailPage() {
     document.getElementById('status-select').value = quote.status || '발송전';
     renderQuoteDocument(quote, items);
     renderVersionHistory(quote);
+    updateDeleteButtonState();
     bindDetailEvents(id);
   } catch (e) {
     console.error(e);
@@ -51,10 +52,21 @@ async function initQuoteDetailPage() {
   }
 }
 
+// 계약된 견적서는 삭제할 수 없도록 버튼을 비활성화합니다(계약 후 상태 변경으로
+// 즉시 반영되도록 status-select change 핸들러에서도 함께 호출).
+function updateDeleteButtonState() {
+  const btn = document.getElementById('btn-delete');
+  const isContracted = currentQuote && currentQuote.status === '계약됨';
+  btn.disabled = isContracted;
+  btn.title = isContracted ? '계약된 견적서는 삭제할 수 없습니다.' : '';
+}
+
 function bindDetailEvents(id) {
   document.getElementById('status-select').addEventListener('change', async (e) => {
     try {
       await apiUpdate('quotes', id, { status: e.target.value });
+      if (currentQuote) currentQuote.status = e.target.value;
+      updateDeleteButtonState();
       showToast('상태가 변경되었습니다.', 'success');
     } catch (err) {
       console.error(err);
@@ -85,6 +97,10 @@ function bindDetailEvents(id) {
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
+    if (currentQuote && currentQuote.status === '계약됨') {
+      showToast('계약된 견적서는 삭제할 수 없습니다.', 'error');
+      return;
+    }
     if (!(await confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.'))) return;
     try {
       await apiDelete('quotes', id);

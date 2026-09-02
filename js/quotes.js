@@ -92,7 +92,7 @@ function renderQuotesTable(list) {
         <div class="flex items-center gap-1 whitespace-nowrap">
           <a href="quote-detail.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="상세보기"><i class="fa-solid fa-eye"></i></a>
           ${q.status === '발송전' ? `<a href="quote-new.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="수정 (발송전 상태만 수정 가능)"><i class="fa-solid fa-pen"></i></a>` : ''}
-          <button onclick="deleteQuote('${q.id}')" class="btn-ghost btn text-rose-500" style="padding:0.35rem 0.55rem;" title="삭제"><i class="fa-solid fa-trash"></i></button>
+          ${q.status !== '계약됨' ? `<button onclick="deleteQuote('${q.id}')" class="btn-ghost btn text-rose-500" style="padding:0.35rem 0.55rem;" title="삭제"><i class="fa-solid fa-trash"></i></button>` : ''}
         </div>
       </td>
     </tr>
@@ -127,6 +127,11 @@ async function confirmStatusChange() {
 
 /* ---------------- 삭제 ---------------- */
 async function deleteQuote(id) {
+  const quote = allQuotes.find(q => q.id === id);
+  if (quote && quote.status === '계약됨') {
+    showToast('계약된 견적서는 삭제할 수 없습니다.', 'error');
+    return;
+  }
   if (!(await confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.'))) return;
   try {
     await apiDelete('quotes', id);
