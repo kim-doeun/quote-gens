@@ -73,7 +73,7 @@ function renderSummary(list) {
 function renderQuotesTable(list) {
   const tbody = document.getElementById('quotes-body');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-10">조건에 맞는 견적서가 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-slate-400 py-10">조건에 맞는 견적서가 없습니다.</td></tr>`;
     return;
   }
 
@@ -81,9 +81,10 @@ function renderQuotesTable(list) {
     <tr>
       <td class="font-semibold text-slate-700 cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.quote_number || '-'}${Number(q.version) > 1 ? `<span class="version-tag">v${q.version}</span>` : ''}</td>
       <td class="cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.customer_name || '-'}</td>
+      <td>${q.customer_contact || '-'}</td>
+      <td>${q.quote_title || '-'}</td>
       <td>${q.sales_rep_name || '-'}</td>
       <td>${formatDate(q.issue_date)}</td>
-      <td>${formatDate(q.valid_until)}</td>
       <td class="font-semibold text-right">${formatCurrency(q.total)}</td>
       <td>
         <button onclick="openStatusModal('${q.id}', '${q.status}')" class="cursor-pointer">${statusBadge(q.status)}</button>
