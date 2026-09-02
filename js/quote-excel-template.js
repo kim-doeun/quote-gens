@@ -237,12 +237,13 @@ function buildItemSection(sheet, startRow, opts) {
       const c1 = colStarts[idx];
       const c2 = c1 + colSpans[idx] - 1;
       const isNumber = typeof val === 'number';
+      const isLeftAligned = idx === 0 || idx === 1 || idx === values.length - 1; // 항목/업무활동, 설명, 비고
       setMergedCell(sheet, row, c1, row, c2, val, {
         border: bodyBorder,
         alignment: {
           vertical: 'top',
           wrapText: idx === 0 || idx === 1, // 항목/업무활동, 설명 컬럼 모두 자동 줄바꿈
-          horizontal: idx === 0 ? 'left' : (isNumber ? 'right' : 'center'),
+          horizontal: isLeftAligned ? 'left' : (isNumber ? 'right' : 'center'),
         },
         font: { size: 9, color: { argb: XLSX_COLORS.textDark }, bold: idx === 0 },
         numFmt: isNumber && numFmts && numFmts[idx] ? numFmts[idx] : undefined,
