@@ -7,6 +7,8 @@
 let editQuoteId = null;
 let editQuoteNumber = null;
 let editExistingItemIds = [];
+let reviseFromId = null;
+let reviseSourceVersion = 1;
 
 let licenseItems = [];
 let serviceItems = [];
@@ -22,13 +24,17 @@ let customersCache = [];
 let salesRepsCache = [];
 
 async function initQuoteNewPage() {
-  editQuoteId = new URLSearchParams(window.location.search).get('id');
+  const params = new URLSearchParams(window.location.search);
+  editQuoteId = params.get('id');
+  reviseFromId = params.get('reviseFrom');
 
   await Promise.all([loadCustomersForSelect(), loadProductsForSelect(), loadRatesForSelect(), loadSalesRepsForSelect()]);
   bindEvents();
 
   if (editQuoteId) {
     await loadQuoteForEdit(editQuoteId);
+  } else if (reviseFromId) {
+    await loadQuoteForRevision(reviseFromId);
   } else {
     const issueInput = document.getElementById('issue-date');
     const validInput = document.getElementById('valid-until');
@@ -47,7 +53,7 @@ async function initQuoteNewPage() {
   updateSummary();
 }
 
-/* ---------------- 견적서 수정 모드 (견적 이력 관리에서 "발송전" 견적서 수정 진입) ---------------- */
+/* ---------------- 견적서 수정/재발행 모드 공통 로직 ---------------- */
 function mapDbItemToState(item) {
   return {
     id: item.id,
@@ -65,12 +71,49 @@ function mapDbItemToState(item) {
   };
 }
 
+async function fetchQuoteWithItems(id) {
+  const [quote, itemsRes] = await Promise.all([
+    apiGet('quotes', id),
+    apiList('quote_items')
+  ]);
+  const items = (itemsRes.data || []).filter(i => i.quote_id === id);
+  return { quote, items };
+}
+
+function loadItemsIntoState(items) {
+  licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)').map(mapDbItemToState);
+  serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)').map(mapDbItemToState);
+  hardwareItems = items.filter(i => i.item_type === '하드웨어').map(mapDbItemToState);
+  etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)').map(mapDbItemToState);
+}
+
+// 견적명/고객사/견적담당/부가세율/결제조건/비고/내부메모처럼 수정 모드와 재발행
+// 모드에서 동일하게 프리필되는 필드. 견적번호·발행일·유효기한·상태는 두 모드에서
+// 서로 다르게 처리되므로 각자의 로드 함수에서 별도로 채웁니다.
+function prefillCommonQuoteFields(quote) {
+  document.getElementById('quote-title').value = quote.quote_title || '';
+  document.getElementById('quote-reference').value = quote.reference || '';
+  document.getElementById('customer-select').value = quote.customer_id || '';
+  const prefilledCustomer = customersCache.find(c => c.id === quote.customer_id);
+  document.getElementById('customer-search-input').value = prefilledCustomer ? customerOptionLabel(prefilledCustomer) : (quote.customer_name || '');
+  document.getElementById('customer-name').value = quote.customer_name || '';
+  document.getElementById('customer-contact').value = quote.customer_contact || '';
+  document.getElementById('customer-email').value = quote.customer_email || '';
+  document.getElementById('customer-phone').value = quote.customer_phone || '';
+  document.getElementById('customer-address').value = quote.customer_address || '';
+  document.getElementById('rep-name').value = quote.sales_rep_name || '';
+  document.getElementById('rep-email').value = quote.sales_rep_email || '';
+  document.getElementById('rep-phone').value = quote.sales_rep_phone || '';
+  document.getElementById('tax-rate').value = quote.tax_rate != null ? quote.tax_rate : 10;
+  document.getElementById('payment-terms').value = quote.payment_terms || '';
+  document.getElementById('notes').value = quote.notes || '';
+  document.getElementById('internal-memo').value = quote.internal_memo || '';
+}
+
+/* ---------------- 견적서 수정 모드 (견적 이력 관리에서 "발송전" 견적서 수정 진입) ---------------- */
 async function loadQuoteForEdit(id) {
   try {
-    const [quote, itemsRes] = await Promise.all([
-      apiGet('quotes', id),
-      apiList('quote_items')
-    ]);
+    const { quote, items } = await fetchQuoteWithItems(id);
 
     if (quote.status !== '발송전') {
       showToast('발송전 상태의 견적서만 수정할 수 있습니다.', 'error');
@@ -78,38 +121,54 @@ async function loadQuoteForEdit(id) {
       return;
     }
 
-    const items = (itemsRes.data || []).filter(i => i.quote_id === id);
     editExistingItemIds = items.map(i => i.id);
     editQuoteNumber = quote.quote_number || '';
-    licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)').map(mapDbItemToState);
-    serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)').map(mapDbItemToState);
-    hardwareItems = items.filter(i => i.item_type === '하드웨어').map(mapDbItemToState);
-    etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)').map(mapDbItemToState);
+    loadItemsIntoState(items);
 
     document.getElementById('page-title').textContent = '견적서 수정';
     document.getElementById('page-subtitle').textContent = '발송전 상태의 견적서만 수정할 수 있습니다. 수정 후 저장하면 기존 견적번호를 유지한 채 내용이 갱신됩니다.';
     document.getElementById('quote-number-preview').textContent = quote.quote_number || '-';
     document.getElementById('btn-save-quote').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 수정 사항 저장';
 
-    document.getElementById('quote-title').value = quote.quote_title || '';
-    document.getElementById('quote-reference').value = quote.reference || '';
-    document.getElementById('customer-select').value = quote.customer_id || '';
-    const prefilledCustomer = customersCache.find(c => c.id === quote.customer_id);
-    document.getElementById('customer-search-input').value = prefilledCustomer ? customerOptionLabel(prefilledCustomer) : (quote.customer_name || '');
-    document.getElementById('customer-name').value = quote.customer_name || '';
-    document.getElementById('customer-contact').value = quote.customer_contact || '';
-    document.getElementById('customer-email').value = quote.customer_email || '';
-    document.getElementById('customer-phone').value = quote.customer_phone || '';
-    document.getElementById('customer-address').value = quote.customer_address || '';
-    document.getElementById('rep-name').value = quote.sales_rep_name || '';
-    document.getElementById('rep-email').value = quote.sales_rep_email || '';
-    document.getElementById('rep-phone').value = quote.sales_rep_phone || '';
+    prefillCommonQuoteFields(quote);
     document.getElementById('issue-date').value = (quote.issue_date || '').slice(0, 10);
     document.getElementById('valid-until').value = (quote.valid_until || '').slice(0, 10);
-    document.getElementById('tax-rate').value = quote.tax_rate != null ? quote.tax_rate : 10;
-    document.getElementById('payment-terms').value = quote.payment_terms || '';
-    document.getElementById('notes').value = quote.notes || '';
-    document.getElementById('internal-memo').value = quote.internal_memo || '';
+  } catch (e) {
+    console.error(e);
+    showToast('견적서를 불러오지 못했습니다.', 'error');
+  }
+}
+
+/* ---------------- 견적서 재발행 모드 (협상 중 동일 건을 새 버전으로 재발행) ----------------
+   견적서 상세 화면의 "새 버전으로 재발행" 버튼에서 진입합니다. 기존 견적의
+   내용을 그대로 불러와 편집할 수 있게 하되, 저장 시에는 기존 견적을 덮어쓰지
+   않고 새 견적번호로 완전히 새로운 견적을 생성합니다(견적발행일/유효기한도
+   오늘 기준으로 새로 계산). 원본 견적은 저장이 성공한 뒤 '재발행됨' 상태로
+   자동 전환되어, 이후 대시보드/이력 집계에서 최신 버전만 유효한 건으로 잡힙니다. */
+async function loadQuoteForRevision(id) {
+  try {
+    const { quote, items } = await fetchQuoteWithItems(id);
+
+    if (quote.status === '재발행됨') {
+      showToast('이미 재발행되어 대체된 견적서입니다. 최신 버전에서 다시 시도해주세요.', 'error');
+      setTimeout(() => { location.href = `quote-detail.html?id=${id}`; }, 900);
+      return;
+    }
+
+    reviseSourceVersion = Number(quote.version) || 1;
+    loadItemsIntoState(items);
+
+    document.getElementById('page-title').textContent = `견적서 재발행 (v${reviseSourceVersion + 1})`;
+    document.getElementById('page-subtitle').textContent = `기존 견적(${quote.quote_number})의 내용을 불러왔습니다. 필요한 부분을 수정한 뒤 저장하면 새 견적번호로 발급되고, 기존 견적은 "재발행됨" 상태로 자동 전환됩니다.`;
+    document.getElementById('btn-save-quote').innerHTML = '<i class="fa-solid fa-code-branch"></i> 새 버전으로 재발행';
+
+    prefillCommonQuoteFields(quote);
+
+    const now = new Date();
+    document.getElementById('issue-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('valid-until').value = addDays(now, 30).toISOString().slice(0, 10);
+    const qn = await generateQuoteNumber();
+    document.getElementById('quote-number-preview').textContent = qn;
   } catch (e) {
     console.error(e);
     showToast('견적서를 불러오지 못했습니다.', 'error');
@@ -866,6 +925,14 @@ async function saveQuote() {
       internal_memo: document.getElementById('internal-memo').value.trim(),
     };
 
+    // parent_quote_id/version은 새로 생성되는 견적(신규 발급·재발행)에만 설정합니다.
+    // 수정 모드(editQuoteId)는 apiUpdate가 PATCH(부분 갱신)이므로 이 필드들을
+    // payload에서 아예 빼서, 기존에 저장돼 있던 버전 체인 정보를 건드리지 않습니다.
+    if (!editQuoteId) {
+      quotePayload.parent_quote_id = reviseFromId || '';
+      quotePayload.version = reviseFromId ? reviseSourceVersion + 1 : 1;
+    }
+
     const quoteId = editQuoteId
       ? (await apiUpdate('quotes', editQuoteId, quotePayload)).id || editQuoteId
       : (await apiCreate('quotes', quotePayload)).id;
@@ -938,6 +1005,12 @@ async function saveQuote() {
 
     if (editQuoteId) {
       showToast('견적서가 수정되었습니다.', 'success');
+    } else if (reviseFromId) {
+      // 새 버전 저장이 모두 끝난 뒤에만 이전 버전을 '재발행됨'으로 전환합니다
+      // (항목 생성 중간에 실패하면 이전 버전은 그대로 유효한 상태로 남아있어야 하므로).
+      await apiUpdate('quotes', reviseFromId, { status: '재발행됨' });
+      notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
+      showToast('새 버전으로 재발행되었습니다.', 'success');
     } else {
       notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
       showToast('견적서가 성공적으로 발급되었습니다.', 'success');
@@ -949,6 +1022,8 @@ async function saveQuote() {
     btn.disabled = false;
     btn.innerHTML = editQuoteId
       ? '<i class="fa-solid fa-floppy-disk"></i> 수정 사항 저장'
+      : reviseFromId
+      ? '<i class="fa-solid fa-code-branch"></i> 새 버전으로 재발행'
       : '<i class="fa-solid fa-paper-plane"></i> 견적서 발급 및 저장';
   }
 }

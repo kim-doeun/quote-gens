@@ -201,6 +201,20 @@ body {
 .badge-approved { background: #dcfce7; color: #15803d; }
 .badge-rejected { background: #fee2e2; color: #b91c1c; }
 .badge-expired { background: #e2e8f0; color: #64748b; }
+.badge-superseded { background: #ede9fe; color: #6d28d9; }
+
+/* 견적 버전 표시 (v2, v3 ...) */
+.version-tag {
+  display: inline-block;
+  background: #eef2ff;
+  color: var(--brand-primary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
 
 /* 버튼 */
 .btn {
@@ -216,6 +230,7 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--brand-primary); color: #fff; }
 .btn-primary:hover { background: var(--brand-primary-dark); }
 .btn-secondary { background: #fff; color: #334155; border: 1px solid #e2e8f0; }

@@ -3,6 +3,10 @@
    - 상단 필터 바(기간: 월별/기간별, 영업대표)로 지표/차트/최근 견적을 필터링
    - "월별 견적발행/계약 금액" 차트는 필터 기간과 무관하게 항상 연간(월별 모드) /
      최근 12개월(기간별 모드) 기준으로 표시되며, 영업대표 선택만 반영됨
+   - 협상 중 재발행되어 상태가 '재발행됨'으로 바뀐 이전 버전 견적은 로드 시점에
+     아예 제외합니다. 같은 건이 여러 번 재발행돼도 최신 버전만 집계에 남아
+     견적 건수/금액이 중복으로 부풀려지지 않습니다(js/common.js의
+     ACTIVE_QUOTE_STATUSES 참고).
    ============================================================ */
 
 let allQuotes = [];
@@ -37,7 +41,7 @@ let monthGridYear = draftFilter.year;
 async function loadDashboard() {
   try {
     const { data } = await apiList('quotes');
-    allQuotes = data || [];
+    allQuotes = (data || []).filter(q => q.status !== '재발행됨');
     bindFilterEvents();
     renderRepOptions();
     syncFilterUiFromDraft();
@@ -194,7 +198,7 @@ function renderMonthlyChart() {
 
 /* ---------------- 상태별 분포 차트 ---------------- */
 function renderStatusChart(filtered) {
-  const labels = Object.keys(STATUS_CONFIG);
+  const labels = ACTIVE_QUOTE_STATUSES;
   const counts = labels.map(l => filtered.filter(q => q.status === l).length);
   const colors = ['#94a3b8', '#2563eb', '#d97706', '#16a34a', '#dc2626'];
 

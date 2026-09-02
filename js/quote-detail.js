@@ -5,6 +5,7 @@
 
 let currentQuote = null;
 let currentItems = [];
+let allQuotesCache = [];
 
 /* 회사 고정 정보 (사업자등록증 기준) */
 const COMPANY_INFO = {
@@ -27,19 +28,22 @@ async function initQuoteDetailPage() {
   }
 
   try {
-    const [quote, itemsRes] = await Promise.all([
+    const [quote, itemsRes, quotesRes] = await Promise.all([
       apiGet('quotes', id),
-      apiList('quote_items', { search: '' })
+      apiList('quote_items', { search: '' }),
+      apiList('quotes')
     ]);
     currentQuote = quote;
     const items = (itemsRes.data || [])
       .filter(i => i.quote_id === id)
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     currentItems = items;
+    allQuotesCache = quotesRes.data || [];
 
     document.getElementById('page-subtitle').textContent = `${quote.quote_number} · ${quote.customer_name}`;
     document.getElementById('status-select').value = quote.status || '발송전';
     renderQuoteDocument(quote, items);
+    renderVersionHistory(quote);
     bindDetailEvents(id);
   } catch (e) {
     console.error(e);
@@ -56,6 +60,10 @@ function bindDetailEvents(id) {
       console.error(err);
       showToast('상태 변경 중 오류가 발생했습니다.', 'error');
     }
+  });
+
+  document.getElementById('btn-revise').addEventListener('click', () => {
+    location.href = `quote-new.html?reviseFrom=${id}`;
   });
 
   document.getElementById('btn-print').addEventListener('click', () => window.print());
@@ -392,6 +400,79 @@ function renderQuoteDocument(q, items) {
   `;
 
   renderInternalMemoBox(q);
+}
+
+/* ---------------- 버전 히스토리 (재발행 체인) ----------------
+   동일 건이 협상 중 "새 버전으로 재발행"을 통해 여러 번 발행된 경우, 이전
+   버전들과 현재 견적서를 연결해서 보여줍니다. 각 버전은 parent_quote_id로
+   직전 버전을 가리키는 단순 연결 리스트 구조이므로(재발행 시 항상 정확히
+   하나의 다음 버전만 생기고, 재발행되면 이전 버전은 '재발행됨' 상태로
+   자동 전환됨), 앞뒤로 한 번씩만 순회하면 전체 체인을 구할 수 있습니다. */
+function buildVersionChain(allQuotes, quote) {
+  const byId = new Map(allQuotes.map(q => [q.id, q]));
+
+  let root = quote;
+  const seenBack = new Set();
+  while (root.parent_quote_id && byId.has(root.parent_quote_id) && !seenBack.has(root.id)) {
+    seenBack.add(root.id);
+    root = byId.get(root.parent_quote_id);
+  }
+
+  const chain = [root];
+  const seenForward = new Set();
+  let cursor = root;
+  while (true) {
+    const next = allQuotes.find(q => q.parent_quote_id === cursor.id);
+    if (!next || seenForward.has(next.id)) break;
+    seenForward.add(next.id);
+    chain.push(next);
+    cursor = next;
+  }
+  return chain;
+}
+
+function renderVersionHistory(quote) {
+  const box = document.getElementById('version-history-box');
+  const reviseBtn = document.getElementById('btn-revise');
+  if (!box) return;
+
+  const chain = buildVersionChain(allQuotesCache, quote);
+  const supersededBy = allQuotesCache.find(q => q.parent_quote_id === quote.id);
+
+  // 이미 재발행되어 대체된 버전에서는 새로 재발행하지 않고, 최신 버전에서 진행하도록 안내
+  if (quote.status === '재발행됨' && reviseBtn) {
+    reviseBtn.disabled = true;
+    reviseBtn.title = '이미 재발행되어 대체된 견적서입니다. 최신 버전에서 재발행해주세요.';
+  }
+
+  if (chain.length <= 1) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+
+  const rows = chain.map(v => {
+    const isCurrent = v.id === quote.id;
+    const rowClass = isCurrent ? 'bg-indigo-50 border border-indigo-200' : 'bg-white border border-slate-200';
+    const content = `
+      <span class="font-semibold text-slate-700">v${v.version || 1}</span>
+      <span class="text-slate-600">${v.quote_number || '-'}</span>
+      ${statusBadge(v.status)}
+      <span class="text-slate-400 text-xs">${formatDate(v.issue_date)}</span>
+      ${isCurrent ? '<span class="text-indigo-600 text-xs font-semibold">(현재 보는 중)</span>' : ''}
+    `;
+    return isCurrent
+      ? `<div class="flex items-center gap-2 flex-wrap px-3 py-2 rounded-lg ${rowClass}">${content}</div>`
+      : `<a href="quote-detail.html?id=${v.id}" class="flex items-center gap-2 flex-wrap px-3 py-2 rounded-lg ${rowClass} hover:border-indigo-300">${content}</a>`;
+  }).join('');
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <p class="text-xs font-bold text-slate-500 mb-2"><i class="fa-solid fa-code-branch mr-1"></i>버전 히스토리 (동일 건, 총 ${chain.length}개 버전)</p>
+      <div class="flex flex-col gap-1.5">${rows}</div>
+      ${supersededBy ? `<p class="text-xs text-violet-600 mt-2"><i class="fa-solid fa-arrow-right mr-1"></i>이 견적은 <a href="quote-detail.html?id=${supersededBy.id}" class="underline font-semibold">v${supersededBy.version || '?'} (${supersededBy.quote_number})</a>으로 재발행되었습니다.</p>` : ''}
+    </div>`;
 }
 
 /* 내부 메모는 화면(상세보기)에서만 노출되는 사내 전용 정보입니다.

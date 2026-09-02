@@ -79,7 +79,7 @@ function renderQuotesTable(list) {
 
   tbody.innerHTML = list.map(q => `
     <tr>
-      <td class="font-semibold text-slate-700 cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.quote_number || '-'}</td>
+      <td class="font-semibold text-slate-700 cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.quote_number || '-'}${Number(q.version) > 1 ? `<span class="version-tag">v${q.version}</span>` : ''}</td>
       <td class="cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.customer_name || '-'}</td>
       <td>${q.sales_rep_name || '-'}</td>
       <td>${formatDate(q.issue_date)}</td>

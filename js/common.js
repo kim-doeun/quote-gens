@@ -106,7 +106,13 @@ const STATUS_CONFIG = {
   '내부협의중': { cls: 'badge-negotiating', icon: 'fa-comments' },
   '계약됨': { cls: 'badge-approved', icon: 'fa-check' },
     '만료됨': { cls: 'badge-expired', icon: 'fa-clock' },
+  '재발행됨': { cls: 'badge-superseded', icon: 'fa-code-branch' },
 };
+
+// 견적 이력 관리/대시보드 등에서 "현재 유효한 견적"으로 취급할 상태 목록
+// (같은 건이 협상 중 여러 번 재발행되면 이전 버전은 '재발행됨'으로 자동 전환되어
+// 이 목록에서 빠지므로, 대시보드 집계에서 같은 건이 중복으로 잡히지 않습니다)
+const ACTIVE_QUOTE_STATUSES = ['발송전', '발송됨', '내부협의중', '계약됨', '만료됨'];
 
 function statusBadge(status) {
   const cfg = STATUS_CONFIG[status] || { cls: 'badge-draft', icon: 'fa-circle' };
