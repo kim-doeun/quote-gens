@@ -73,17 +73,18 @@ function renderSummary(list) {
 function renderQuotesTable(list) {
   const tbody = document.getElementById('quotes-body');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-10">조건에 맞는 견적서가 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-slate-400 py-10">조건에 맞는 견적서가 없습니다.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = list.map(q => `
     <tr>
-      <td class="font-semibold text-slate-700 cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.quote_number || '-'}</td>
+      <td class="font-semibold text-slate-700 cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.quote_number || '-'}${Number(q.version) > 1 ? `<span class="version-tag">v${q.version}</span>` : ''}</td>
       <td class="cursor-pointer" onclick="location.href='quote-detail.html?id=${q.id}'">${q.customer_name || '-'}</td>
+      <td>${q.customer_contact || '-'}</td>
+      <td>${q.quote_title || '-'}</td>
       <td>${q.sales_rep_name || '-'}</td>
       <td>${formatDate(q.issue_date)}</td>
-      <td>${formatDate(q.valid_until)}</td>
       <td class="font-semibold text-right">${formatCurrency(q.total)}</td>
       <td>
         <button onclick="openStatusModal('${q.id}', '${q.status}')" class="cursor-pointer">${statusBadge(q.status)}</button>
@@ -91,7 +92,8 @@ function renderQuotesTable(list) {
       <td>
         <div class="flex items-center gap-1 whitespace-nowrap">
           <a href="quote-detail.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="상세보기"><i class="fa-solid fa-eye"></i></a>
-          <button onclick="deleteQuote('${q.id}')" class="btn-ghost btn text-rose-500" style="padding:0.35rem 0.55rem;" title="삭제"><i class="fa-solid fa-trash"></i></button>
+          ${q.status === '발송전' ? `<a href="quote-new.html?id=${q.id}" class="btn-ghost btn" style="padding:0.35rem 0.55rem;" title="수정 (발송전 상태만 수정 가능)"><i class="fa-solid fa-pen"></i></a>` : ''}
+          ${q.status !== '계약됨' ? `<button onclick="deleteQuote('${q.id}')" class="btn-ghost btn text-rose-500" style="padding:0.35rem 0.55rem;" title="삭제"><i class="fa-solid fa-trash"></i></button>` : ''}
         </div>
       </td>
     </tr>
@@ -126,7 +128,12 @@ async function confirmStatusChange() {
 
 /* ---------------- 삭제 ---------------- */
 async function deleteQuote(id) {
-  if (!confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.')) return;
+  const quote = allQuotes.find(q => q.id === id);
+  if (quote && quote.status === '계약됨') {
+    showToast('계약된 견적서는 삭제할 수 없습니다.', 'error');
+    return;
+  }
+  if (!(await confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.'))) return;
   try {
     await apiDelete('quotes', id);
     showToast('견적서가 삭제되었습니다.', 'success');

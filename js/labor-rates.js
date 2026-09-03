@@ -96,7 +96,7 @@ async function saveRate() {
 }
 
 async function deleteRate(id) {
-  if (!confirmAction('이 단가 항목을 삭제할까요?')) return;
+  if (!(await confirmAction('이 단가 항목을 삭제할까요?'))) return;
   try {
     await apiDelete('labor_rates', id);
     showToast('삭제되었습니다.', 'success');

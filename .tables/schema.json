@@ -190,8 +190,19 @@
           "발송됨",
           "내부협의중",
           "계약됨",
-          "만료됨"
+          "만료됨",
+          "재발행됨"
         ]
+      },
+      {
+        "name": "parent_quote_id",
+        "type": "text",
+        "description": "재발행(새 버전)으로 생성된 견적서인 경우 원본이 되는 이전 버전 견적서의 ID. 최초 발급 견적은 빈 문자열"
+      },
+      {
+        "name": "version",
+        "type": "number",
+        "description": "버전 번호. 최초 발급 시 1이며, \"새 버전으로 재발행\"할 때마다 이전 버전 + 1로 저장됨"
       },
       {
         "name": "tax_rate",
@@ -209,9 +220,14 @@
         "description": "개발비(인건비) 제안금액 합계(VAT 제외)"
       },
       {
+        "name": "misc_subtotal",
+        "type": "number",
+        "description": "기타 품목(HW/3rd-party S/W/외주 등) 제안금액 합계(VAT 제외)"
+      },
+      {
         "name": "subtotal",
         "type": "number",
-        "description": "전체(라이선스+개발비) 제안금액 합계(VAT 제외)"
+        "description": "전체(라이선스+개발비+기타) 제안금액 합계(VAT 제외)"
       },
       {
         "name": "tax_amount",
@@ -259,7 +275,10 @@
         "description": "항목 유형",
         "options": [
           "제품(S/W라이선스)",
-          "서비스(개발/구축)"
+          "서비스(개발/구축)",
+          "하드웨어",
+          "기타",
+          "기타(HW/3rd-party 등)"
         ]
       },
       {
@@ -270,7 +289,15 @@
       {
         "name": "classification",
         "type": "text",
-        "description": "구분 (예: 운영/개발) - 제품 항목에 주로 사용"
+        "description": "구분 - 운영/개발 (01.S/W라이선스, 03.하드웨어, 04.기타 공통)",
+        "options": [
+          "운영",
+          "개발",
+          "하드웨어",
+          "3rd-party S/W",
+          "외주",
+          "기타"
+        ]
       },
       {
         "name": "assignee",
@@ -363,6 +390,31 @@
         "name": "description",
         "type": "text",
         "description": "등급 설명"
+      }
+    ]
+  },
+  {
+    "name": "sales_reps",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "견적담당(영업대표) 고유 ID"
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "description": "영업대표명"
+      },
+      {
+        "name": "email",
+        "type": "text",
+        "description": "이메일"
+      },
+      {
+        "name": "phone",
+        "type": "text",
+        "description": "연락처"
       }
     ]
   }

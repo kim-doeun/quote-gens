@@ -33,13 +33,18 @@
           <option value="내부협의중">내부협의중</option>
           <option value="계약됨">계약됨</option>
           <option value="만료됨">만료됨</option>
+          <option value="재발행됨">재발행됨</option>
         </select>
+        <button id="btn-revise" class="btn btn-secondary"><i class="fa-solid fa-code-branch"></i> 새 버전으로 재발행</button>
         <button id="btn-excel" class="btn btn-secondary"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> 엑셀 다운로드</button>
         <!-- 인쇄/PDF 메뉴: 요청에 따라 화면에서만 숨김 처리(코드/기능은 유지). 다시 노출하려면 아래 style="display:none;"만 제거하면 됩니다. -->
         <button id="btn-print" class="btn btn-secondary" style="display:none;"><i class="fa-solid fa-print"></i> 인쇄/PDF</button>
         <button id="btn-delete" class="btn btn-danger"><i class="fa-solid fa-trash"></i> 삭제</button>
       </div>
     </header>
+
+    <!-- 버전 히스토리 (동일 건이 재발행으로 여러 버전 발행된 경우에만 표시, 화면 전용) -->
+    <div id="version-history-box" class="no-print max-w-4xl mx-auto mb-6 hidden"></div>
 
     <!-- 내부 메모 (화면 전용, 인쇄/PDF/엑셀에는 절대 포함되지 않음) -->
     <div id="internal-memo-box" class="no-print max-w-4xl mx-auto mb-6 hidden"></div>
