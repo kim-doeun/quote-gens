@@ -327,13 +327,13 @@ SQLite 파일 하나(`quote-gens-data` 볼륨의 `app.db`, WAL 모드이므로 `
 ```bash
 # 백업
 docker compose exec app sh -c 'cat /data/app.db' > backup/app.db
-docker compose exec app sh -c 'cat /data/app.db' > backup/app.wal
-docker compose exec app sh -c 'cat /data/app.db' > backup/app.db-shm
+docker compose exec app sh -c 'cat /data/app.wal' > backup/app.wal
+docker compose exec app sh -c 'cat /data/app.db-shm' > backup/app.db-shm
 
 # 복원 (컨테이너 정지 후 볼륨에 파일을 덮어쓰기)
 docker compose down
-docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)":/backup alpine \
-  cp /backup/backup.db /data/app.db
+docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)"/backup:/backup alpine \
+  sh -c 'cp /backup/app.db /backup/app.db-wal /backup/app.db-shm /data/'
 docker compose up -d
 ```
 
