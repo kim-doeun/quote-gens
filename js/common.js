@@ -137,9 +137,66 @@ function showToast(message, type = 'info') {
   }, 2600);
 }
 
-/* ---------------- 확인 모달 (간단 confirm 대체) ---------------- */
+/* ---------------- 확인 모달 (간단 confirm 대체) ----------------
+   브라우저 네이티브 window.confirm()은 다음과 같은 문제가 있어 자체 모달로 대체합니다:
+   - 동기(synchronous) 호출이라 표시 위치가 브라우저마다 다르고 눈에 잘 안 띄는 경우가 있음
+   - 이 페이지가 iframe 등 allow-modals 권한이 없는 컨테이너 안에서 열리면 호출 자체가
+     무시(ignored)되어, 사용자 입장에서는 화면이 응답 없이 멈춘 것처럼 보임
+     ("Ignored call to 'confirm()'. The document is sandboxed, ..." 콘솔 에러 발생)
+   confirmAction()은 이제 Promise를 반환하는 비동기 함수이므로 호출부는 반드시
+   `await confirmAction(...)` 형태로 사용해야 합니다. */
+function ensureConfirmModal() {
+  let modal = document.getElementById('app-confirm-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'app-confirm-modal';
+  modal.className = 'modal-overlay hidden';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 400px;">
+      <div class="p-5">
+        <p id="app-confirm-message" class="text-slate-700 text-sm leading-relaxed whitespace-pre-line"></p>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end gap-2">
+        <button id="app-confirm-cancel" type="button" class="btn btn-secondary">취소</button>
+        <button id="app-confirm-ok" type="button" class="btn btn-primary">확인</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  return modal;
+}
+
 function confirmAction(message) {
-  return window.confirm(message);
+  const modal = ensureConfirmModal();
+  const msgEl = document.getElementById('app-confirm-message');
+  const okBtn = document.getElementById('app-confirm-ok');
+  const cancelBtn = document.getElementById('app-confirm-cancel');
+  msgEl.textContent = message;
+
+  return new Promise((resolve) => {
+    function cleanup(result) {
+      modal.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onOverlayClick(e) { if (e.target === modal) cleanup(false); }
+    function onKeydown(e) {
+      if (e.key === 'Escape') cleanup(false);
+      if (e.key === 'Enter') cleanup(true);
+    }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+
+    modal.classList.remove('hidden');
+    okBtn.focus();
+  });
 }
 
 /* ---------------- 사이드바 레이아웃 ---------------- */
@@ -150,6 +207,7 @@ const NAV_ITEMS = [
   { href: 'customers.html', icon: 'fa-building-user', label: '고객사 관리' },
   { href: 'products.html', icon: 'fa-box-open', label: 'S/W 라이선스 관리' },
   { href: 'labor-rates.html', icon: 'fa-user-gear', label: '인건비 단가 관리' },
+  { href: 'sales-reps.html', icon: 'fa-user-tie', label: '영업대표 관리' },
 ];
 
 function renderSidebar(activePage) {
@@ -177,10 +235,6 @@ function renderSidebar(activePage) {
       <nav class="p-3 flex flex-col gap-1">
         ${items}
       </nav>
-      <div class="p-4 mt-4 mx-3 rounded-xl bg-white/5 hidden lg:block collapsible-label">
-        <p class="text-slate-400 text-xs mb-1 whitespace-nowrap">로그인 계정</p>
-        <p class="text-white text-sm font-semibold whitespace-nowrap">영업대표 · Sales Rep</p>
-      </div>
     </aside>`;
 
   applySidebarCollapsedState();
@@ -207,47 +261,22 @@ function toggleSidebar() {
 
 /* ---------------- Slack 알림 (견적서 발급) ----------------
    견적서 저장(발급) 성공 시 지정된 Slack 채널로 알림 메시지를 전송합니다.
-   - Incoming Webhook 사용 (채널 고정, 스레드 답글 아님 — 매번 새 메시지로 게시)
-   - 브라우저 CORS 제약으로 응답은 읽을 수 없어 mode:'no-cors'로 전송(전송 자체는 정상 동작) */
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
-
+   Webhook URL은 더 이상 클라이언트 코드에 두지 않고 서버(SLACK_WEBHOOK_URL 환경변수)에서만
+   보관하며, 브라우저는 견적 요약 정보만 백엔드의 /api/slack/notify-quote로 전달합니다. */
 async function notifySlackQuoteIssued(quote) {
-  if (!SLACK_WEBHOOK_URL) return;
   try {
     const detailUrl = new URL(`quote-detail.html?id=${quote.id}`, location.href).href;
-
-    const payload = {
-      text: `📄 새 견적서가 발급되었습니다: ${quote.quote_number} (${quote.customer_name || '-'})`,
-      blocks: [
-        {
-          type: 'header',
-          text: { type: 'plain_text', text: `📄 새 견적서 발급: ${quote.quote_number}`, emoji: true }
-        },
-        {
-          type: 'section',
-          fields: [
-            { type: 'mrkdwn', text: `*견적번호*\n${quote.quote_number || '-'}` },
-            { type: 'mrkdwn', text: `*고객사명*\n${quote.customer_name || '-'}` },
-            { type: 'mrkdwn', text: `*견적명*\n${quote.quote_title || '-'}` },
-            { type: 'mrkdwn', text: `*총 제안 금액 (VAT 포함)*\n${formatCurrency(quote.total)}` },
-            { type: 'mrkdwn', text: `*담당자*\n${quote.sales_rep_name || '-'}` }
-          ]
-        },
-        {
-          type: 'section',
-          text: { type: 'mrkdwn', text: `🔗 <${detailUrl}|견적서 상세 페이지 바로가기>` }
-        }
-      ]
-    };
-
-    // no-cors 모드에서는 Content-Type: application/json 헤더를 보낼 수 없으므로
-    // Slack이 공식 지원하는 방식대로 application/x-www-form-urlencoded + payload 파라미터로 전송합니다.
-    const body = new URLSearchParams({ payload: JSON.stringify(payload) });
-
-    await fetch(SLACK_WEBHOOK_URL, {
+    await fetch('api/slack/notify-quote', {
       method: 'POST',
-      mode: 'no-cors',
-      body
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteNumber: quote.quote_number,
+        customerName: quote.customer_name,
+        quoteTitle: quote.quote_title,
+        totalAmount: formatCurrency(quote.total),
+        salesRepName: quote.sales_rep_name,
+        detailUrl
+      })
     });
   } catch (e) {
     console.error('Slack 알림 전송 실패:', e);

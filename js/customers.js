@@ -146,7 +146,7 @@ async function saveCustomer() {
 }
 
 async function deleteCustomer(id) {
-  if (!confirmAction('이 고객사를 삭제할까요?')) return;
+  if (!(await confirmAction('이 고객사를 삭제할까요?'))) return;
   try {
     await apiDelete('customers', id);
     showToast('고객사가 삭제되었습니다.', 'success');
