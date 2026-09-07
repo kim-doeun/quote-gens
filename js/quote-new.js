@@ -9,6 +9,7 @@ let editQuoteNumber = null;
 let editExistingItemIds = [];
 let reviseFromId = null;
 let reviseSourceVersion = 1;
+let duplicateFromId = null;
 
 let licenseItems = [];
 let serviceItems = [];
@@ -27,6 +28,7 @@ async function initQuoteNewPage() {
   const params = new URLSearchParams(window.location.search);
   editQuoteId = params.get('id');
   reviseFromId = params.get('reviseFrom');
+  duplicateFromId = params.get('duplicateFrom');
 
   await Promise.all([loadCustomersForSelect(), loadProductsForSelect(), loadRatesForSelect(), loadSalesRepsForSelect()]);
   bindEvents();
@@ -35,6 +37,8 @@ async function initQuoteNewPage() {
     await loadQuoteForEdit(editQuoteId);
   } else if (reviseFromId) {
     await loadQuoteForRevision(reviseFromId);
+  } else if (duplicateFromId) {
+    await loadQuoteForDuplicate(duplicateFromId);
   } else {
     const issueInput = document.getElementById('issue-date');
     const validInput = document.getElementById('valid-until');
@@ -161,6 +165,34 @@ async function loadQuoteForRevision(id) {
     document.getElementById('page-title').textContent = `견적서 재발행 (v${reviseSourceVersion + 1})`;
     document.getElementById('page-subtitle').textContent = `기존 견적(${quote.quote_number})의 내용을 불러왔습니다. 필요한 부분을 수정한 뒤 저장하면 새 견적번호로 발급되고, 기존 견적은 "재발행됨" 상태로 자동 전환됩니다.`;
     document.getElementById('btn-save-quote').innerHTML = '<i class="fa-solid fa-code-branch"></i> 새 버전으로 재발행';
+
+    prefillCommonQuoteFields(quote);
+
+    const now = new Date();
+    document.getElementById('issue-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('valid-until').value = addDays(now, 30).toISOString().slice(0, 10);
+    const qn = await generateQuoteNumber();
+    document.getElementById('quote-number-preview').textContent = qn;
+  } catch (e) {
+    console.error(e);
+    showToast('견적서를 불러오지 못했습니다.', 'error');
+  }
+}
+
+/* ---------------- 견적서 복제 모드 (견적 이력 관리 목록의 "복제" 버튼) ----------------
+   재발행과 달리 원본과 아무 연결 관계를 남기지 않는 완전히 독립된 새 견적을
+   만듭니다. 원본 상태는 전혀 건드리지 않으며(재발행됨으로 바뀌지 않음), 어떤
+   상태의 견적이든 제한 없이 복제할 수 있습니다. 다른 고객사에 유사한 견적을
+   새로 만들거나, 같은 딜이 아닌 별도 건의 초안으로 재사용할 때 사용합니다. */
+async function loadQuoteForDuplicate(id) {
+  try {
+    const { quote, items } = await fetchQuoteWithItems(id);
+
+    loadItemsIntoState(items);
+
+    document.getElementById('page-title').textContent = '견적서 복제';
+    document.getElementById('page-subtitle').textContent = `기존 견적(${quote.quote_number})의 내용을 복사했습니다. 원본과 연결되지 않는 완전히 새로운 견적으로 저장됩니다 — 필요한 내용을 수정한 뒤 저장해주세요.`;
+    document.getElementById('btn-save-quote').innerHTML = '<i class="fa-solid fa-copy"></i> 복제본 저장';
 
     prefillCommonQuoteFields(quote);
 
@@ -1011,6 +1043,10 @@ async function saveQuote() {
       await apiUpdate('quotes', reviseFromId, { status: '재발행됨' });
       notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
       showToast('새 버전으로 재발행되었습니다.', 'success');
+    } else if (duplicateFromId) {
+      // 복제는 원본과 아무 관계도 남기지 않으므로 원본 상태는 전혀 건드리지 않습니다.
+      notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
+      showToast('견적서가 복제되었습니다.', 'success');
     } else {
       notifySlackQuoteIssued({ id: quoteId, ...quotePayload });
       showToast('견적서가 성공적으로 발급되었습니다.', 'success');
@@ -1024,6 +1060,8 @@ async function saveQuote() {
       ? '<i class="fa-solid fa-floppy-disk"></i> 수정 사항 저장'
       : reviseFromId
       ? '<i class="fa-solid fa-code-branch"></i> 새 버전으로 재발행'
+      : duplicateFromId
+      ? '<i class="fa-solid fa-copy"></i> 복제본 저장'
       : '<i class="fa-solid fa-paper-plane"></i> 견적서 발급 및 저장';
   }
 }
