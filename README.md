@@ -324,17 +324,17 @@ docker compose exec app node server/seed.js
 
 ### 8.5 데이터 백업/복원
 
-SQLite 파일 하나(`quote-gens-data` 볼륨의 `app.db`, WAL 모드이므로 `app.db-wal`/`app.db-shm`도 함께)가 전체 데이터입니다.
+SQLite 파일 하나(`lomin-quote-data` 볼륨의 `app.db`, WAL 모드이므로 `app.db-wal`/`app.db-shm`도 함께)가 전체 데이터입니다.
 
 ```bash
 # 백업
 docker compose exec app sh -c 'cat /data/app.db' > backup/app.db
-docker compose exec app sh -c 'cat /data/app.wal' > backup/app.wal
+docker compose exec app sh -c 'cat /data/app.db-wal' > backup/app.db-wal
 docker compose exec app sh -c 'cat /data/app.db-shm' > backup/app.db-shm
 
 # 복원 (컨테이너 정지 후 볼륨에 파일을 덮어쓰기)
 docker compose down
-docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)"/backup:/backup alpine \
+docker run --rm -v quote-gens_lomin-quote-data:/data -v "$(pwd)"/backup:/backup alpine \
   sh -c 'cp /backup/app.db /backup/app.db-wal /backup/app.db-shm /data/'
 docker compose up -d
 ```
@@ -354,15 +354,15 @@ Docker Desktop의 볼륨 export 기능 등으로 `app.db`, `app.db-wal`, `app.db
 docker compose down
 
 # 백업 파일 복사 (app.db, app.db-wal, app.db-shm)
-docker run --rm -v quote-gens_quote-gens-data:/data -v "$(pwd)"/backup:/backup alpine \
+docker run --rm -v quote-gens_lomin-quote-data:/data -v "$(pwd)"/backup:/backup alpine \
   sh -c 'cp /backup/app.db /backup/app.db-wal /backup/app.db-shm /data/'
 
 # 소유권을 앱 실행 유저(app)로 재조정 (--user root로 실행해 chown 권한 확보)
-docker run --rm --user root -v quote-gens_quote-gens-data:/data lomin-quote:latest \
+docker run --rm --user root -v quote-gens_lomin-quote-data:/data lomin-quote:latest \
   chown -R app:app /data
 
 docker compose up -d
 ```
 
-복사 후 `docker run --rm -v quote-gens_quote-gens-data:/data alpine ls -la /data`로 파일 소유자가 `root`가 아닌지 확인하는 것을 권장합니다.
+복사 후 `docker run --rm -v quote-gens_lomin-quote-data:/data alpine ls -la /data`로 파일 소유자가 `root`가 아닌지 확인하는 것을 권장합니다.
 
