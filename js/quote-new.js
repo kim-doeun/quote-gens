@@ -643,7 +643,7 @@ function renderServiceTable() {
   }
   noMsg.classList.add('hidden');
 
-  const gradeOptions = ['특급', '고급', '중급', '초급'];
+  const gradeOptions = ['-', '특급', '고급', '중급', '초급'];
 
   tbody.innerHTML = serviceItems.map(item => `
     <tr>
