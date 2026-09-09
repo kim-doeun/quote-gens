@@ -52,13 +52,19 @@ const productIds = insert('products', [
   { _key: 'support', name: '유지보수 지원(Standard)', category: '구독', unit: 'Year', list_price: 8000000, unit_price: 7000000, description: '연간 기술지원 및 버전 업그레이드', is_active: false },
 ]);
 
-const laborIds = insert('labor_rates', [
-  { _key: 'pm', grade: '특급', default_role: 'PM', monthly_rate: 12000000, description: '프로젝트 총괄, 고객 커뮤니케이션' },
-  { _key: 'ml-senior', grade: '특급', default_role: 'ML 엔지니어', monthly_rate: 11000000, description: '모델 설계 및 고난도 튜닝' },
-  { _key: 'ml', grade: '고급', default_role: 'ML 엔지니어', monthly_rate: 9000000, description: '모델 학습/평가/배포' },
-  { _key: 'be', grade: '고급', default_role: 'BE 엔지니어', monthly_rate: 8500000, description: 'API/인프라 개발' },
-  { _key: 'fe', grade: '중급', default_role: 'FE 엔지니어', monthly_rate: 6500000, description: '화면 개발 및 UX 구현' },
-  { _key: 'qa', grade: '초급', default_role: 'QA', monthly_rate: 4500000, description: '테스트 및 품질 검증' },
+const gradeRateIds = insert('grade_rates', [
+  { _key: 'g-special', grade: '특급', monthly_rate: 12000000 },
+  { _key: 'g-high', grade: '고급', monthly_rate: 9000000 },
+  { _key: 'g-mid', grade: '중급', monthly_rate: 6500000 },
+  { _key: 'g-low', grade: '초급', monthly_rate: 4500000 },
+]);
+
+const roleIds = insert('roles', [
+  { _key: 'pm', name: 'PM', description: '프로젝트 총괄, 고객 커뮤니케이션' },
+  { _key: 'ml', name: 'ML 엔지니어', description: '모델 설계/학습/평가/배포' },
+  { _key: 'be', name: 'BE 엔지니어', description: 'API/인프라 개발' },
+  { _key: 'fe', name: 'FE 엔지니어', description: '화면 개발 및 UX 구현' },
+  { _key: 'qa', name: 'QA', description: '테스트 및 품질 검증' },
 ]);
 
 const customerIds = insert('customers', [

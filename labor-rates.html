@@ -16,28 +16,52 @@
   <div id="sidebar-mount"></div>
 
   <main class="flex-1 p-4 md:p-8">
-    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800">인건비 단가 관리</h1>
-        <p class="text-slate-500 text-sm mt-1">견적서 "02. 개발비" 섹션에서 사용할 등급별 인월(M/M) 단가를 관리하세요.</p>
-      </div>
-      <button id="btn-new-rate" class="btn btn-primary"><i class="fa-solid fa-plus"></i> 단가 등록</button>
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">인건비 단가 관리</h1>
+      <p class="text-slate-500 text-sm mt-1">견적서 "02. 개발비" 섹션에서 사용할 등급별 단가와 역할별 설명을 관리하세요. 등급(단가)과 역할(설명)은 서로 독립적으로 관리되며, 항목 추가 시 각각 따로 선택합니다.</p>
     </header>
 
-    <section class="card p-0 overflow-hidden">
+    <!-- 등급별 단가 -->
+    <section class="card p-0 overflow-hidden mb-6">
+      <div class="p-5 border-b border-slate-100">
+        <h2 class="font-bold text-slate-800">등급별 단가</h2>
+        <p class="text-slate-400 text-xs mt-1">등급(특급/고급/중급/초급)당 인월(M/M) 단가 1개씩 고정 관리됩니다. 단가를 수정하면 바로 저장됩니다.</p>
+      </div>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
               <th>등급</th>
-              <th>기본 담당(역할)</th>
-              <th class="text-right">인월(M/M)당 단가</th>
+              <th class="text-right" style="width:260px;">인월(M/M)당 단가</th>
+            </tr>
+          </thead>
+          <tbody id="grade-rates-body">
+            <tr><td colspan="2" class="text-center text-slate-400 py-10">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 역할 -->
+    <section class="card p-0 overflow-hidden">
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-slate-800">역할</h2>
+          <p class="text-slate-400 text-xs mt-1">개발비 업무 활동에서 선택할 역할과 담당 업무 설명을 등록하세요.</p>
+        </div>
+        <button id="btn-new-role" class="btn btn-primary"><i class="fa-solid fa-plus"></i> 역할 등록</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>역할명</th>
               <th>설명</th>
               <th style="width:1%"></th>
             </tr>
           </thead>
-          <tbody id="rates-body">
-            <tr><td colspan="5" class="text-center text-slate-400 py-10">불러오는 중...</td></tr>
+          <tbody id="roles-body">
+            <tr><td colspan="3" class="text-center text-slate-400 py-10">불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -45,40 +69,27 @@
   </main>
 </div>
 
-<!-- 등록/수정 모달 -->
-<div id="rate-modal" class="modal-overlay hidden">
+<!-- 역할 등록/수정 모달 -->
+<div id="role-modal" class="modal-overlay hidden">
   <div class="modal-box" style="max-width: 480px;">
     <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-      <h3 class="font-bold text-slate-800" id="rate-modal-title">단가 등록</h3>
-      <button onclick="closeRateModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      <h3 class="font-bold text-slate-800" id="role-modal-title">역할 등록</h3>
+      <button onclick="closeRoleModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="p-5 flex flex-col gap-4">
-      <input type="hidden" id="r-id">
+      <input type="hidden" id="ro-id">
       <div>
-        <label class="block text-xs font-semibold text-slate-500 mb-1.5">등급 *</label>
-        <select id="r-grade" class="input">
-          <option value="특급">특급</option>
-          <option value="고급">고급</option>
-          <option value="중급">중급</option>
-          <option value="초급">초급</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 mb-1.5">기본 담당(역할)</label>
-        <input type="text" id="r-role" class="input" placeholder="예: BE 엔지니어">
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 mb-1.5">인월(M/M)당 단가 (원)</label>
-        <input type="number" id="r-rate" class="input text-right" min="0" placeholder="0">
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">역할명 *</label>
+        <input type="text" id="ro-name" class="input" placeholder="예: BE 엔지니어">
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-500 mb-1.5">설명</label>
-        <textarea id="r-description" class="input" rows="2" placeholder="담당 업무 설명"></textarea>
+        <textarea id="ro-description" class="input" rows="3" placeholder="담당 업무 설명"></textarea>
       </div>
     </div>
     <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
-      <button onclick="closeRateModal()" class="btn btn-secondary">취소</button>
-      <button onclick="saveRate()" class="btn btn-primary">저장</button>
+      <button onclick="closeRoleModal()" class="btn btn-secondary">취소</button>
+      <button onclick="saveRole()" class="btn btn-primary">저장</button>
     </div>
   </div>
 </div>

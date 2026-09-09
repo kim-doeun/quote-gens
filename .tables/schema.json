@@ -358,17 +358,17 @@
     ]
   },
   {
-    "name": "labor_rates",
+    "name": "grade_rates",
     "fields": [
       {
         "name": "id",
         "type": "text",
-        "description": "인건단가 고유 ID"
+        "description": "등급별 단가 고유 ID"
       },
       {
         "name": "grade",
         "type": "text",
-        "description": "등급",
+        "description": "등급 (특급/고급/중급/초급 중 하나, 등급당 1행)",
         "options": [
           "특급",
           "고급",
@@ -377,19 +377,29 @@
         ]
       },
       {
-        "name": "default_role",
-        "type": "text",
-        "description": "기본 직무/담당 예시 (예: BE 엔지니어)"
-      },
-      {
         "name": "monthly_rate",
         "type": "number",
-        "description": "인월(M/M)당 소비자단가"
+        "description": "인월(M/M)당 소비자단가. 역할과 무관하게 등급에만 종속됨"
+      }
+    ]
+  },
+  {
+    "name": "roles",
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "description": "역할 고유 ID"
+      },
+      {
+        "name": "name",
+        "type": "text",
+        "description": "역할명 (예: PM, BE 엔지니어, ML 엔지니어)"
       },
       {
         "name": "description",
         "type": "text",
-        "description": "등급 설명"
+        "description": "역할 설명 (담당 업무). 등급과 무관하게 역할에만 종속됨"
       }
     ]
   },

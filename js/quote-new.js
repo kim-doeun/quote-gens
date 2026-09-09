@@ -20,7 +20,8 @@ let serviceItems = [];
 let hardwareItems = [];
 let etcItems = [];
 let productsCache = [];
-let ratesCache = [];
+let rolesCache = [];
+let gradeRatesCache = [];
 let customersCache = [];
 let salesRepsCache = [];
 
@@ -30,7 +31,7 @@ async function initQuoteNewPage() {
   reviseFromId = params.get('reviseFrom');
   duplicateFromId = params.get('duplicateFrom');
 
-  await Promise.all([loadCustomersForSelect(), loadProductsForSelect(), loadRatesForSelect(), loadSalesRepsForSelect()]);
+  await Promise.all([loadCustomersForSelect(), loadProductsForSelect(), loadRolesForSelect(), loadGradeRates(), loadSalesRepsForSelect()]);
   bindEvents();
 
   if (editQuoteId) {
@@ -336,17 +337,29 @@ async function loadProductsForSelect() {
   }
 }
 
-async function loadRatesForSelect() {
+async function loadRolesForSelect() {
   try {
-    const { data } = await apiList('labor_rates');
-    ratesCache = data || [];
-    const sel = document.getElementById('modal-service-rate');
-    ratesCache.forEach(r => {
+    const { data } = await apiList('roles');
+    rolesCache = (data || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+    const sel = document.getElementById('modal-service-role');
+    rolesCache.forEach(r => {
       const opt = document.createElement('option');
       opt.value = r.id;
-      opt.textContent = `[${r.grade}] ${r.default_role} (${formatCurrency(r.monthly_rate)}/M)`;
+      opt.textContent = r.name;
       sel.appendChild(opt);
     });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// 등급별 단가는 select에 나열하지 않고, 등급(modal-service-grade) 선택 시
+// 해당 등급의 단가를 조회하는 용도로만 캐시합니다(등급=단가, 역할=설명이
+// 서로 독립적으로 관리되므로 "카탈로그에서 선택"할 대상이 아님).
+async function loadGradeRates() {
+  try {
+    const { data } = await apiList('grade_rates');
+    gradeRatesCache = data || [];
   } catch (e) {
     console.error(e);
   }
@@ -389,14 +402,20 @@ function bindEvents() {
     syncDiscountFromPrice('modal-license-listprice', 'modal-license-discount', 'modal-license-price');
   });
 
-  document.getElementById('modal-service-rate').addEventListener('change', (e) => {
-    const r = ratesCache.find(x => x.id === e.target.value);
+  // 역할 선택 → 업무 활동명/설명만 채움 (등급·단가와는 무관, 별도 관리 데이터)
+  document.getElementById('modal-service-role').addEventListener('change', (e) => {
+    const r = rolesCache.find(x => x.id === e.target.value);
     if (!r) return;
-    document.getElementById('modal-service-name').value = r.default_role || '';
+    document.getElementById('modal-service-name').value = r.name || '';
     document.getElementById('modal-service-desc').value = r.description || '';
-    document.getElementById('modal-service-grade').value = r.grade || '중급';
-    document.getElementById('modal-service-listprice').value = r.monthly_rate || 0;
-    document.getElementById('modal-service-price').value = r.monthly_rate || 0;
+  });
+
+  // 등급 선택 → 해당 등급의 단가만 채움 (역할·업무활동명과는 무관)
+  document.getElementById('modal-service-grade').addEventListener('change', (e) => {
+    const g = gradeRatesCache.find(x => x.grade === e.target.value);
+    const rate = g ? g.monthly_rate || 0 : 0;
+    document.getElementById('modal-service-listprice').value = rate;
+    document.getElementById('modal-service-price').value = rate;
     syncDiscountFromPrice('modal-service-listprice', 'modal-service-discount', 'modal-service-price');
   });
 
@@ -568,7 +587,7 @@ function renderLicenseTable() {
 
 /* ---------------- 02. 개발비(서비스) 모달 ---------------- */
 function openServiceModal() {
-  document.getElementById('modal-service-rate').value = '';
+  document.getElementById('modal-service-role').value = '';
   document.getElementById('modal-service-name').value = '';
   document.getElementById('modal-service-desc').value = '';
   document.getElementById('modal-service-grade').value = '중급';
