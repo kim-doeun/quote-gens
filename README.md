@@ -293,7 +293,7 @@ docker compose up -d --build
 docker compose exec app node server/seed.js
 ```
 
-브라우저에서 `http://localhost:3000` (또는 `.env`의 `APP_PORT`)으로 접속합니다.
+브라우저에서 `http://localhost` (또는 `.env`의 `APP_PORT`으로 지정한 포트)로 접속합니다.
 
 ### 8.2 구성 요소
 
@@ -313,7 +313,7 @@ docker compose exec app node server/seed.js
 | `PORT` | `3000` | 컨테이너 내부 서버 포트 |
 | `DB_PATH` | `/data/app.db` | SQLite 데이터베이스 파일 경로 (볼륨 마운트 대상) |
 | `SLACK_WEBHOOK_URL` | (없음) | 견적서 발급 알림용 Slack Incoming Webhook. 비워두면 알림을 보내지 않음 |
-| `APP_PORT` | `3000` | (docker-compose 전용) 호스트에 노출할 포트 |
+| `APP_PORT` | `80` | (docker-compose 전용) 호스트에 노출할 포트 |
 
 ### 8.4 보안 참고
 
