@@ -392,16 +392,12 @@ function bindEvents() {
   document.getElementById('modal-service-rate').addEventListener('change', (e) => {
     const r = ratesCache.find(x => x.id === e.target.value);
     if (!r) return;
+    document.getElementById('modal-service-name').value = r.default_role || '';
+    document.getElementById('modal-service-desc').value = r.description || '';
     document.getElementById('modal-service-grade').value = r.grade || '중급';
     document.getElementById('modal-service-listprice').value = r.monthly_rate || 0;
     document.getElementById('modal-service-price').value = r.monthly_rate || 0;
     syncDiscountFromPrice('modal-service-listprice', 'modal-service-discount', 'modal-service-price');
-    if (!document.getElementById('modal-service-name').value) {
-      document.getElementById('modal-service-name').value = r.default_role || '';
-    }
-    if (!document.getElementById('modal-service-desc').value) {
-      document.getElementById('modal-service-desc').value = r.description || '';
-    }
   });
 
   document.getElementById('btn-add-license').addEventListener('click', openLicenseModal);
