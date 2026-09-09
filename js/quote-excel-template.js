@@ -242,15 +242,16 @@ function buildItemSection(sheet, startRow, opts) {
         border: bodyBorder,
         alignment: {
           vertical: 'top',
-          wrapText: idx === 0 || idx === 1, // 항목/업무활동, 설명 컬럼 모두 자동 줄바꿈
+          wrapText: idx === 0 || idx === 1 || idx === values.length - 1, // 항목/업무활동, 설명, 비고 모두 자동 줄바꿈
           horizontal: isLeftAligned ? 'left' : (isNumber ? 'right' : 'center'),
         },
         font: { size: 9, color: { argb: XLSX_COLORS.textDark }, bold: idx === 0 },
         numFmt: isNumber && numFmts && numFmts[idx] ? numFmts[idx] : undefined,
       });
     });
-    // 항목/업무활동(A열), 설명(B열)이 길어 자동 줄바꿈되는 경우 행 높이를 자동 계산
-    // (병합된 논리 컬럼의 실제 폭 = 해당 컬럼이 차지하는 물리 컬럼들의 너비 합)
+    // 항목/업무활동(A열), 설명(B열), 비고(마지막 열)가 길어 자동 줄바꿈되는 경우
+    // 행 높이를 자동 계산 (병합된 논리 컬럼의 실제 폭 = 해당 컬럼이 차지하는
+    // 물리 컬럼들의 너비 합, 세 컬럼 중 가장 많은 줄 수가 필요한 컬럼 기준)
     const colWidthOf = (idx) => {
       const c1 = colStarts[idx];
       const span = colSpans[idx];
@@ -258,9 +259,11 @@ function buildItemSection(sheet, startRow, opts) {
       for (let c = c1; c < c1 + span; c++) w += QUOTE_XLSX_COLUMN_WIDTHS[c - 1];
       return w;
     };
+    const remarkIdx = values.length - 1;
     sheet.getRow(row).height = rowHeightForWrappedText([
       { text: values[0], colWidthChars: colWidthOf(0), fontSize: 9 },
       { text: values[1], colWidthChars: colWidthOf(1), fontSize: 9 },
+      { text: values[remarkIdx], colWidthChars: colWidthOf(remarkIdx), fontSize: 9 },
     ], 18);
     row += 1;
   });

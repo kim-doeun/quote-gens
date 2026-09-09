@@ -301,6 +301,48 @@ table.data-table.compact-table tbody td textarea.input {
   min-height: 1.9rem !important;
 }
 
+/* 견적서 발급 - 항목 표 순서 변경(드래그) / 컬럼 너비 조절 */
+table.data-table.resizable-table {
+  table-layout: fixed;
+}
+table.data-table.resizable-table thead th {
+  position: relative;
+  overflow: hidden;
+}
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 5;
+}
+.col-resize-handle:hover,
+.col-resize-handle.resizing {
+  background: rgba(79, 70, 229, 0.25);
+}
+.drag-handle-row {
+  cursor: grab;
+}
+.drag-handle-row.dragging {
+  opacity: 0.4;
+}
+.drag-handle-row.drag-over-top {
+  box-shadow: inset 0 2px 0 0 var(--brand-primary);
+}
+.drag-handle-row.drag-over-bottom {
+  box-shadow: inset 0 -2px 0 0 var(--brand-primary);
+}
+.drag-handle-cell {
+  text-align: center;
+  color: #cbd5e1;
+  vertical-align: middle !important;
+}
+.drag-handle-cell i { pointer-events: none; }
+
 /* 토스트 */
 #toast-container {
   position: fixed;

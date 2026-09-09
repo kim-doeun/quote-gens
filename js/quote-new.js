@@ -56,6 +56,8 @@ async function initQuoteNewPage() {
   renderHardwareTable();
   renderEtcTable();
   updateSummary();
+
+  ['license-table', 'service-table', 'hardware-table', 'etc-table'].forEach(initResizableColumns);
 }
 
 /* ---------------- 견적서 수정/재발행 모드 공통 로직 ---------------- */
@@ -571,7 +573,8 @@ function renderLicenseTable() {
   noMsg.classList.add('hidden');
 
   tbody.innerHTML = licenseItems.map(item => `
-    <tr>
+    <tr class="drag-handle-row" draggable="true" ondragstart="onRowDragStart(event,'license','${item.id}')" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event,'license','${item.id}')" ondragend="onRowDragEnd(event)">
+      <td class="drag-handle-cell"><i class="fa-solid fa-grip-vertical"></i></td>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateLicenseField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateLicenseField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
       <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateLicenseField('${item.id}','classification', this.value)"></td>
@@ -665,7 +668,8 @@ function renderServiceTable() {
   const gradeOptions = ['-', '특급', '고급', '중급', '초급'];
 
   tbody.innerHTML = serviceItems.map(item => `
-    <tr>
+    <tr class="drag-handle-row" draggable="true" ondragstart="onRowDragStart(event,'service','${item.id}')" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event,'service','${item.id}')" ondragend="onRowDragEnd(event)">
+      <td class="drag-handle-cell"><i class="fa-solid fa-grip-vertical"></i></td>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateServiceField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateServiceField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
       <td>
@@ -760,7 +764,8 @@ function renderHardwareTable() {
   noMsg.classList.add('hidden');
 
   tbody.innerHTML = hardwareItems.map(item => `
-    <tr>
+    <tr class="drag-handle-row" draggable="true" ondragstart="onRowDragStart(event,'hardware','${item.id}')" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event,'hardware','${item.id}')" ondragend="onRowDragEnd(event)">
+      <td class="drag-handle-cell"><i class="fa-solid fa-grip-vertical"></i></td>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateHardwareField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateHardwareField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
       <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateHardwareField('${item.id}','classification', this.value)"></td>
@@ -851,7 +856,8 @@ function renderEtcTable() {
   noMsg.classList.add('hidden');
 
   tbody.innerHTML = etcItems.map(item => `
-    <tr>
+    <tr class="drag-handle-row" draggable="true" ondragstart="onRowDragStart(event,'etc','${item.id}')" ondragover="onRowDragOver(event)" ondragleave="onRowDragLeave(event)" ondrop="onRowDrop(event,'etc','${item.id}')" ondragend="onRowDragEnd(event)">
+      <td class="drag-handle-cell"><i class="fa-solid fa-grip-vertical"></i></td>
       <td><input type="text" class="input" value="${escapeAttr(item.name)}" onchange="updateEtcField('${item.id}','name', this.value)"></td>
       <td><textarea class="input" style="min-height:1.9rem; resize:vertical;" rows="1" onchange="updateEtcField('${item.id}','description', this.value)">${escapeHtml(item.description)}</textarea></td>
       <td><input type="text" class="input" list="classification-options" value="${escapeAttr(item.classification)}" onchange="updateEtcField('${item.id}','classification', this.value)"></td>
@@ -865,6 +871,104 @@ function renderEtcTable() {
   `).join('');
 }
 
+/* ---------------- 항목 표 순서 변경 (드래그 앤 드롭) ----------------
+   01~04 4개 표 모두 동일한 방식으로 동작합니다. 행을 드래그하면 해당
+   상태 배열(licenseItems 등)의 순서가 바뀌고, 저장 시 sort_order가 이
+   배열 순서를 그대로 따르므로 별도 처리 없이 순서가 반영됩니다. */
+let draggedRow = null; // { type, id }
+
+const ITEM_TABLE_CONFIG = {
+  license: { getItems: () => licenseItems, render: renderLicenseTable },
+  service: { getItems: () => serviceItems, render: renderServiceTable },
+  hardware: { getItems: () => hardwareItems, render: renderHardwareTable },
+  etc: { getItems: () => etcItems, render: renderEtcTable },
+};
+
+function onRowDragStart(e, type, id) {
+  draggedRow = { type, id };
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('dragging');
+  try { e.dataTransfer.setData('text/plain', id); } catch (err) { /* 일부 브라우저 호환용, 무시 가능 */ }
+}
+
+function onRowDragOver(e) {
+  if (!draggedRow) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const row = e.currentTarget;
+  const rect = row.getBoundingClientRect();
+  const isTop = (e.clientY - rect.top) < rect.height / 2;
+  row.classList.toggle('drag-over-top', isTop);
+  row.classList.toggle('drag-over-bottom', !isTop);
+}
+
+function onRowDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+}
+
+function onRowDrop(e, type, targetId) {
+  e.preventDefault();
+  const row = e.currentTarget;
+  const isTop = row.classList.contains('drag-over-top');
+  row.classList.remove('drag-over-top', 'drag-over-bottom');
+
+  if (!draggedRow || draggedRow.type !== type || draggedRow.id === targetId) { draggedRow = null; return; }
+
+  const config = ITEM_TABLE_CONFIG[type];
+  const items = config.getItems();
+  const fromIdx = items.findIndex(i => i.id === draggedRow.id);
+  if (fromIdx === -1) { draggedRow = null; return; }
+
+  const [moved] = items.splice(fromIdx, 1);
+  const toIdx = items.findIndex(i => i.id === targetId);
+  const insertAt = toIdx === -1 ? items.length : (isTop ? toIdx : toIdx + 1);
+  items.splice(insertAt, 0, moved);
+
+  draggedRow = null;
+  config.render();
+}
+
+function onRowDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+  draggedRow = null;
+}
+
+/* ---------------- 항목 표 컬럼 너비 조절 ----------------
+   각 표 헤더 셀 오른쪽 끝에 드래그 가능한 손잡이를 붙여 마우스로 끌면
+   해당 컬럼 너비(px)만 바뀝니다. table-layout:fixed이므로 헤더 셀
+   너비가 그대로 전체 컬럼 너비가 됩니다. 세션 중에만 유지되며 새로고침
+   시 기본 너비로 돌아갑니다. */
+function initResizableColumns(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const headerCells = table.querySelectorAll('thead th:not(.no-resize)');
+  headerCells.forEach(th => {
+    const handle = document.createElement('span');
+    handle.className = 'col-resize-handle';
+    th.appendChild(handle);
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startWidth = th.getBoundingClientRect().width;
+      handle.classList.add('resizing');
+
+      function onMouseMove(moveEvent) {
+        const newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+        th.style.width = `${newWidth}px`;
+      }
+      function onMouseUp() {
+        handle.classList.remove('resizing');
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
 
 function escapeAttr(str) {
   return (str || '').replace(/"/g, '&quot;');
