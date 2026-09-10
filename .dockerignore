@@ -1,0 +1,6 @@
+.git
+.env
+server/node_modules
+server/data
+node_modules
+npm-debug.log
