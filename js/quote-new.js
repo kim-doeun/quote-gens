@@ -412,12 +412,11 @@ function bindEvents() {
     document.getElementById('modal-service-desc').value = r.description || '';
   });
 
-  // 등급 선택 → 해당 등급의 단가만 채움 (역할·업무활동명과는 무관)
+  // 등급 선택 → 해당 등급의 소비자단가/제안단가만 채움 (역할·업무활동명과는 무관)
   document.getElementById('modal-service-grade').addEventListener('change', (e) => {
     const g = gradeRatesCache.find(x => x.grade === e.target.value);
-    const rate = g ? g.monthly_rate || 0 : 0;
-    document.getElementById('modal-service-listprice').value = rate;
-    document.getElementById('modal-service-price').value = rate;
+    document.getElementById('modal-service-listprice').value = g ? g.monthly_rate || 0 : 0;
+    document.getElementById('modal-service-price').value = g ? g.suggested_rate || 0 : 0;
     syncDiscountFromPrice('modal-service-listprice', 'modal-service-discount', 'modal-service-price');
   });
 

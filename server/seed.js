@@ -53,10 +53,10 @@ const productIds = insert('products', [
 ]);
 
 const gradeRateIds = insert('grade_rates', [
-  { _key: 'g-special', grade: '특급', monthly_rate: 12000000 },
-  { _key: 'g-high', grade: '고급', monthly_rate: 9000000 },
-  { _key: 'g-mid', grade: '중급', monthly_rate: 6500000 },
-  { _key: 'g-low', grade: '초급', monthly_rate: 4500000 },
+  { _key: 'g-special', grade: '특급', monthly_rate: 12000000, suggested_rate: 15000000 },
+  { _key: 'g-high', grade: '고급', monthly_rate: 9000000, suggested_rate: 13000000 },
+  { _key: 'g-mid', grade: '중급', monthly_rate: 6500000, suggested_rate: 11000000 },
+  { _key: 'g-low', grade: '초급', monthly_rate: 4500000, suggested_rate: 8500000 },
 ]);
 
 const roleIds = insert('roles', [

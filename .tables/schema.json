@@ -380,6 +380,11 @@
         "name": "monthly_rate",
         "type": "number",
         "description": "인월(M/M)당 소비자단가. 역할과 무관하게 등급에만 종속됨"
+      },
+      {
+        "name": "suggested_rate",
+        "type": "number",
+        "description": "인월(M/M)당 제안단가. 역할과 무관하게 등급에만 종속됨"
       }
     ]
   },

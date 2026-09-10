@@ -50,6 +50,15 @@ for (const table of schemaDefs) {
       const sqlType = SQL_TYPE_BY_FIELD_TYPE[f.type] || 'TEXT';
       db.exec(`ALTER TABLE "${table.name}" ADD COLUMN "${f.name}" ${sqlType};`);
       console.log(`[db] Added missing column "${f.name}" to "${table.name}".`);
+
+      if (table.name === 'grade_rates' && f.name === 'suggested_rate') {
+        const defaultSuggestedRates = { '특급': 15000000, '고급': 13000000, '중급': 11000000, '초급': 8500000 };
+        const update = db.prepare(`UPDATE "grade_rates" SET "suggested_rate" = ? WHERE "grade" = ?`);
+        for (const [grade, amount] of Object.entries(defaultSuggestedRates)) {
+          update.run(amount, grade);
+        }
+        console.log('[db] Backfilled grade_rates.suggested_rate with default values.');
+      }
     }
   }
 }

@@ -32,24 +32,40 @@ function renderGradeRates() {
   tbody.innerHTML = GRADES.map(grade => {
     const row = gradeRatesCache.find(r => r.grade === grade);
     const rate = row ? row.monthly_rate : 0;
+    const suggestedRate = row ? row.suggested_rate : 0;
     return `
     <tr>
       <td><span class="badge badge-sent">${grade}</span></td>
       <td class="text-right">
-        <input type="number" class="input text-right" style="max-width:220px; margin-left:auto;" min="0" value="${rate}" onchange="saveGradeRate('${grade}', this.value)">
+        <input type="text" inputmode="numeric" class="input text-right" style="max-width:220px; margin-left:auto;" value="${formatRateInput(rate)}" oninput="onGradeRateInput(this)" onchange="saveGradeRate('${grade}', 'monthly_rate', this.value)">
+      </td>
+      <td class="text-right">
+        <input type="text" inputmode="numeric" class="input text-right" style="max-width:220px; margin-left:auto;" value="${formatRateInput(suggestedRate)}" oninput="onGradeRateInput(this)" onchange="saveGradeRate('${grade}', 'suggested_rate', this.value)">
       </td>
     </tr>`;
   }).join('');
 }
 
-async function saveGradeRate(grade, value) {
-  const monthlyRate = Number(value) || 0;
+function formatRateInput(value) {
+  return (Number(value) || 0).toLocaleString('ko-KR');
+}
+
+function parseRateInput(value) {
+  return Number(String(value).replace(/[^0-9-]/g, '')) || 0;
+}
+
+function onGradeRateInput(el) {
+  el.value = formatRateInput(parseRateInput(el.value));
+}
+
+async function saveGradeRate(grade, field, value) {
+  const amount = parseRateInput(value);
   const existing = gradeRatesCache.find(r => r.grade === grade);
   try {
     if (existing) {
-      await apiUpdate('grade_rates', existing.id, { monthly_rate: monthlyRate });
+      await apiUpdate('grade_rates', existing.id, { [field]: amount });
     } else {
-      await apiCreate('grade_rates', { grade, monthly_rate: monthlyRate });
+      await apiCreate('grade_rates', { grade, monthly_rate: 0, suggested_rate: 0, [field]: amount });
     }
     showToast(`${grade} 단가가 저장되었습니다.`, 'success');
     await loadGradeRates();
