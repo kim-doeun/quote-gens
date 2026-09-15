@@ -426,6 +426,11 @@ function bindEvents() {
   document.getElementById('btn-add-etc').addEventListener('click', openEtcModal);
   document.getElementById('tax-rate').addEventListener('input', updateSummary);
 
+  document.getElementById('btn-paste-license').addEventListener('click', () => openPasteModal('license'));
+  document.getElementById('btn-paste-service').addEventListener('click', () => openPasteModal('service'));
+  document.getElementById('btn-paste-hardware').addEventListener('click', () => openPasteModal('hardware'));
+  document.getElementById('btn-paste-etc').addEventListener('click', () => openPasteModal('etc'));
+
   // 라이선스 모달: 소비자단가/할인율/제안단가 연동
   document.getElementById('modal-license-listprice').addEventListener('input', () => {
     syncPriceFromDiscount('modal-license-listprice', 'modal-license-discount', 'modal-license-price');
@@ -967,6 +972,137 @@ function initResizableColumns(tableId) {
       document.addEventListener('mouseup', onMouseUp);
     });
   });
+}
+
+/* ---------------- 항목 표 엑셀 붙여넣기로 일괄 추가 ----------------
+   엑셀에서 여러 행을 복사(Ctrl+C)해 붙여넣기 칸에 붙여넣으면(Ctrl+V)
+   탭으로 구분된 열을 파싱해 해당 표에 한 번에 추가합니다. 제목 행이
+   섞여 있으면 자동으로 건너뛰고, 항목명이 빈 행은 무시합니다. */
+const PASTE_TABLE_CONFIG = {
+  license: {
+    title: '01. S/W 라이선스',
+    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    items: () => licenseItems, render: renderLicenseTable, prefix: 'lic',
+    build: (cells) => ({
+      product_id: '',
+      name: cells[0] || '',
+      description: cells[1] || '',
+      classification: cells[2] || '운영',
+      quantity: parsePastedNumber(cells[3]),
+      list_price: parsePastedNumber(cells[4]),
+      unit_price: parsePastedNumber(cells[5]),
+      remark: cells[6] || '',
+    }),
+  },
+  service: {
+    title: '02. 개발비',
+    columns: ['업무활동', '설명', '등급', '수량(인월)', '소비자단가', '제안단가', '비고'],
+    items: () => serviceItems, render: renderServiceTable, prefix: 'svc',
+    build: (cells) => ({
+      name: cells[0] || '',
+      description: cells[1] || '',
+      grade: normalizePastedGrade(cells[2]),
+      quantity: parsePastedNumber(cells[3]),
+      list_price: parsePastedNumber(cells[4]),
+      unit_price: parsePastedNumber(cells[5]),
+      remark: cells[6] || '',
+    }),
+  },
+  hardware: {
+    title: '03. 하드웨어',
+    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    items: () => hardwareItems, render: renderHardwareTable, prefix: 'hw',
+    build: (cells) => ({
+      name: cells[0] || '',
+      description: cells[1] || '',
+      classification: cells[2] || '운영',
+      quantity: parsePastedNumber(cells[3]),
+      list_price: parsePastedNumber(cells[4]),
+      unit_price: parsePastedNumber(cells[5]),
+      remark: cells[6] || '',
+    }),
+  },
+  etc: {
+    title: '04. 기타',
+    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    items: () => etcItems, render: renderEtcTable, prefix: 'etc',
+    build: (cells) => ({
+      name: cells[0] || '',
+      description: cells[1] || '',
+      classification: cells[2] || '운영',
+      quantity: parsePastedNumber(cells[3]),
+      list_price: parsePastedNumber(cells[4]),
+      unit_price: parsePastedNumber(cells[5]),
+      remark: cells[6] || '',
+    }),
+  },
+};
+
+let pasteTargetType = null;
+
+function parsePastedNumber(v) {
+  return Number(String(v || '').replace(/[^0-9.-]/g, '')) || 0;
+}
+
+function normalizePastedGrade(v) {
+  const g = (v || '').toString().trim();
+  return ['특급', '고급', '중급', '초급', '-'].includes(g) ? g : '-';
+}
+
+function openPasteModal(type) {
+  const config = PASTE_TABLE_CONFIG[type];
+  if (!config) return;
+  pasteTargetType = type;
+  document.getElementById('paste-modal-title').textContent = `${config.title} - 엑셀에서 붙여넣기`;
+  document.getElementById('paste-modal-columns').textContent = `열 순서: ${config.columns.join(' / ')}`;
+  document.getElementById('paste-modal-area').value = '';
+  document.getElementById('paste-modal').classList.remove('hidden');
+}
+
+function closePasteModal() {
+  document.getElementById('paste-modal').classList.add('hidden');
+  pasteTargetType = null;
+}
+
+function confirmPasteAdd() {
+  const config = PASTE_TABLE_CONFIG[pasteTargetType];
+  if (!config) return;
+
+  let lines = document.getElementById('paste-modal-area').value.split(/\r\n|\r|\n/).filter(line => line.trim() !== '');
+  if (!lines.length) {
+    showToast('붙여넣을 데이터를 입력해주세요.', 'error');
+    return;
+  }
+
+  const firstCells = lines[0].split('\t').map(c => c.trim());
+  if (firstCells[0] === config.columns[0]) {
+    lines = lines.slice(1);
+  }
+
+  const items = config.items();
+  let added = 0;
+  lines.forEach(line => {
+    const cells = line.split('\t').map(c => c.trim());
+    if (!cells[0]) return;
+    const data = config.build(cells);
+    items.push({
+      id: uid(config.prefix),
+      ...data,
+      list_amount: Math.round(data.quantity * data.list_price),
+      amount: Math.round(data.quantity * data.unit_price),
+    });
+    added += 1;
+  });
+
+  if (!added) {
+    showToast('붙여넣은 내용에서 유효한 행을 찾지 못했습니다.', 'error');
+    return;
+  }
+
+  closePasteModal();
+  config.render();
+  updateSummary();
+  showToast(`${added}행이 추가되었습니다.`, 'success');
 }
 
 function escapeAttr(str) {
