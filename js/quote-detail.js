@@ -5,6 +5,7 @@
 
 let currentQuote = null;
 let currentItems = [];
+let allQuotesCache = [];
 
 /* 회사 고정 정보 (사업자등록증 기준) */
 const COMPANY_INFO = {
@@ -27,19 +28,23 @@ async function initQuoteDetailPage() {
   }
 
   try {
-    const [quote, itemsRes] = await Promise.all([
+    const [quote, itemsRes, quotesRes] = await Promise.all([
       apiGet('quotes', id),
-      apiList('quote_items', { search: '' })
+      apiList('quote_items', { search: '' }),
+      apiList('quotes')
     ]);
     currentQuote = quote;
     const items = (itemsRes.data || [])
       .filter(i => i.quote_id === id)
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     currentItems = items;
+    allQuotesCache = quotesRes.data || [];
 
     document.getElementById('page-subtitle').textContent = `${quote.quote_number} · ${quote.customer_name}`;
     document.getElementById('status-select').value = quote.status || '발송전';
     renderQuoteDocument(quote, items);
+    renderVersionHistory(quote);
+    updateDeleteButtonState();
     bindDetailEvents(id);
   } catch (e) {
     console.error(e);
@@ -47,15 +52,30 @@ async function initQuoteDetailPage() {
   }
 }
 
+// 계약된 견적서는 삭제할 수 없도록 버튼을 비활성화합니다(계약 후 상태 변경으로
+// 즉시 반영되도록 status-select change 핸들러에서도 함께 호출).
+function updateDeleteButtonState() {
+  const btn = document.getElementById('btn-delete');
+  const isContracted = currentQuote && currentQuote.status === '계약됨';
+  btn.disabled = isContracted;
+  btn.title = isContracted ? '계약된 견적서는 삭제할 수 없습니다.' : '';
+}
+
 function bindDetailEvents(id) {
   document.getElementById('status-select').addEventListener('change', async (e) => {
     try {
       await apiUpdate('quotes', id, { status: e.target.value });
+      if (currentQuote) currentQuote.status = e.target.value;
+      updateDeleteButtonState();
       showToast('상태가 변경되었습니다.', 'success');
     } catch (err) {
       console.error(err);
       showToast('상태 변경 중 오류가 발생했습니다.', 'error');
     }
+  });
+
+  document.getElementById('btn-revise').addEventListener('click', () => {
+    location.href = `quote-new.html?reviseFrom=${id}`;
   });
 
   document.getElementById('btn-print').addEventListener('click', () => window.print());
@@ -77,7 +97,11 @@ function bindDetailEvents(id) {
   });
 
   document.getElementById('btn-delete').addEventListener('click', async () => {
-    if (!confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.')) return;
+    if (currentQuote && currentQuote.status === '계약됨') {
+      showToast('계약된 견적서는 삭제할 수 없습니다.', 'error');
+      return;
+    }
+    if (!(await confirmAction('이 견적서를 삭제할까요? 삭제 후 되돌릴 수 없습니다.'))) return;
     try {
       await apiDelete('quotes', id);
       showToast('견적서가 삭제되었습니다.', 'success');
@@ -211,9 +235,83 @@ function renderServiceSection(items, taxRate) {
   </div>`;
 }
 
+/* 03. 하드웨어 / 04. 기타 섹션 렌더
+   두 섹션 모두 01. S/W 라이선스와 동일한 9컬럼(항목/설명/구분/수량/소비자단가/
+   제안단가/제안금액/비고) 구조를 사용하는 고정 섹션입니다. 분류(classification)
+   선택에 따라 표가 동적으로 늘어나던 이전 방식과 달리, item_type
+   ('하드웨어' / '기타')으로 필터링된 항목을 각각 하나의 표에 그대로 렌더링합니다. */
+function renderFixedItemSection(title, items, taxRate, nameBgClass) {
+  if (!items.length) return '';
+
+  const rows = items.map(item => `
+    <tr>
+      <td class="border border-slate-300 font-semibold text-slate-800 ${nameBgClass}" style="vertical-align:top;">${item.name || '-'}</td>
+      <td class="border border-slate-300" style="vertical-align:top;">
+        <p class="text-[11px] text-slate-600 whitespace-pre-line leading-relaxed">${nl2br(item.description)}</p>
+      </td>
+      <td class="border border-slate-300 text-center">${item.classification || '-'}</td>
+      <td class="border border-slate-300 text-center whitespace-nowrap">${formatNumber(item.quantity)}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_price ? formatCurrency(item.list_price) : '-'}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.list_amount ? formatCurrency(item.list_amount) : '-'}</td>
+      <td class="border border-slate-300 text-right whitespace-nowrap">${item.unit_price ? formatCurrency(item.unit_price) : '-'}</td>
+      <td class="border border-slate-300 text-right font-semibold whitespace-nowrap">${item.amount ? formatCurrency(item.amount) : '-'}</td>
+      <td class="border border-slate-300 text-center" style="vertical-align:top;">${item.remark || '-'}</td>
+    </tr>
+  `).join('');
+
+  const subtotal = items.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+  const withTax = Math.round(subtotal * (1 + (taxRate || 0) / 100));
+
+  return `
+  <div class="mb-8">
+    <h3 class="text-lg font-extrabold text-slate-800 mb-3">${title}</h3>
+    <div class="table-wrap">
+      <table class="w-full text-[13px] border border-slate-300" style="border-collapse:collapse;">
+        <thead>
+          <tr class="bg-sky-50 text-slate-600">
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:12%;">항 목</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:28%;">설명</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:6%;">구분</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:5%;">수량<br>(Q)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자단가<br>(LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">소비자금액<br>(Q*LP)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안단가<br>(P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:10%;">제안금액<br>(Q*P)</th>
+            <th class="border border-slate-300 py-1 px-1.5 text-center" style="width:9%;">비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+        <tfoot>
+          <tr class="bg-emerald-50">
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">${title} 제안 금액 (VAT 제외)</td>
+            <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(subtotal)}</td>
+          </tr>
+          <tr class="bg-emerald-50">
+            <td colspan="7" class="border border-slate-300 py-1 px-2 text-right font-semibold">${title} 제안 금액 (VAT 포함)</td>
+            <td colspan="2" class="border border-slate-300 py-1 px-2 text-right font-bold whitespace-nowrap">${formatCurrency(withTax)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderHardwareSection(items, taxRate) {
+  return renderFixedItemSection('03. 하드웨어', items, taxRate, 'bg-violet-50');
+}
+
+function renderEtcSection(items, taxRate) {
+  return renderFixedItemSection('04. 기타', items, taxRate, 'bg-teal-50');
+}
+
+
 function renderQuoteDocument(q, items) {
   const licenseItems = items.filter(i => i.item_type === '제품(S/W라이선스)');
   const serviceItems = items.filter(i => i.item_type === '서비스(개발/구축)');
+  const hardwareItems = items.filter(i => i.item_type === '하드웨어');
+  const etcItems = items.filter(i => i.item_type === '기타' || i.item_type === '기타(HW/3rd-party 등)');
   const taxRate = q.tax_rate || 0;
 
   document.getElementById('quote-content').innerHTML = `
@@ -284,6 +382,8 @@ function renderQuoteDocument(q, items) {
 
     ${renderLicenseSection(licenseItems, taxRate)}
     ${renderServiceSection(serviceItems, taxRate)}
+    ${renderHardwareSection(hardwareItems, taxRate)}
+    ${renderEtcSection(etcItems, taxRate)}
 
     <div class="flex justify-end mb-8">
       <div class="w-full md:w-96 rounded-xl overflow-hidden border-2 border-slate-800">
@@ -316,6 +416,79 @@ function renderQuoteDocument(q, items) {
   `;
 
   renderInternalMemoBox(q);
+}
+
+/* ---------------- 버전 히스토리 (재발행 체인) ----------------
+   동일 건이 협상 중 "새 버전으로 재발행"을 통해 여러 번 발행된 경우, 이전
+   버전들과 현재 견적서를 연결해서 보여줍니다. 각 버전은 parent_quote_id로
+   직전 버전을 가리키는 단순 연결 리스트 구조이므로(재발행 시 항상 정확히
+   하나의 다음 버전만 생기고, 재발행되면 이전 버전은 '재발행됨' 상태로
+   자동 전환됨), 앞뒤로 한 번씩만 순회하면 전체 체인을 구할 수 있습니다. */
+function buildVersionChain(allQuotes, quote) {
+  const byId = new Map(allQuotes.map(q => [q.id, q]));
+
+  let root = quote;
+  const seenBack = new Set();
+  while (root.parent_quote_id && byId.has(root.parent_quote_id) && !seenBack.has(root.id)) {
+    seenBack.add(root.id);
+    root = byId.get(root.parent_quote_id);
+  }
+
+  const chain = [root];
+  const seenForward = new Set();
+  let cursor = root;
+  while (true) {
+    const next = allQuotes.find(q => q.parent_quote_id === cursor.id);
+    if (!next || seenForward.has(next.id)) break;
+    seenForward.add(next.id);
+    chain.push(next);
+    cursor = next;
+  }
+  return chain;
+}
+
+function renderVersionHistory(quote) {
+  const box = document.getElementById('version-history-box');
+  const reviseBtn = document.getElementById('btn-revise');
+  if (!box) return;
+
+  const chain = buildVersionChain(allQuotesCache, quote);
+  const supersededBy = allQuotesCache.find(q => q.parent_quote_id === quote.id);
+
+  // 이미 재발행되어 대체된 버전에서는 새로 재발행하지 않고, 최신 버전에서 진행하도록 안내
+  if (quote.status === '재발행됨' && reviseBtn) {
+    reviseBtn.disabled = true;
+    reviseBtn.title = '이미 재발행되어 대체된 견적서입니다. 최신 버전에서 재발행해주세요.';
+  }
+
+  if (chain.length <= 1) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+
+  const rows = chain.map(v => {
+    const isCurrent = v.id === quote.id;
+    const rowClass = isCurrent ? 'bg-indigo-50 border border-indigo-200' : 'bg-white border border-slate-200';
+    const content = `
+      <span class="font-semibold text-slate-700">v${v.version || 1}</span>
+      <span class="text-slate-600">${v.quote_number || '-'}</span>
+      ${statusBadge(v.status)}
+      <span class="text-slate-400 text-xs">${formatDate(v.issue_date)}</span>
+      ${isCurrent ? '<span class="text-indigo-600 text-xs font-semibold">(현재 보는 중)</span>' : ''}
+    `;
+    return isCurrent
+      ? `<div class="flex items-center gap-2 flex-wrap px-3 py-2 rounded-lg ${rowClass}">${content}</div>`
+      : `<a href="quote-detail.html?id=${v.id}" class="flex items-center gap-2 flex-wrap px-3 py-2 rounded-lg ${rowClass} hover:border-indigo-300">${content}</a>`;
+  }).join('');
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+      <p class="text-xs font-bold text-slate-500 mb-2"><i class="fa-solid fa-code-branch mr-1"></i>버전 히스토리 (동일 건, 총 ${chain.length}개 버전)</p>
+      <div class="flex flex-col gap-1.5">${rows}</div>
+      ${supersededBy ? `<p class="text-xs text-violet-600 mt-2"><i class="fa-solid fa-arrow-right mr-1"></i>이 견적은 <a href="quote-detail.html?id=${supersededBy.id}" class="underline font-semibold">v${supersededBy.version || '?'} (${supersededBy.quote_number})</a>으로 재발행되었습니다.</p>` : ''}
+    </div>`;
 }
 
 /* 내부 메모는 화면(상세보기)에서만 노출되는 사내 전용 정보입니다.

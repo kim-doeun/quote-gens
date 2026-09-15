@@ -127,7 +127,7 @@ async function saveProduct() {
 }
 
 async function deleteProduct(id) {
-  if (!confirmAction('이 제품을 삭제할까요?')) return;
+  if (!(await confirmAction('이 제품을 삭제할까요?'))) return;
   try {
     await apiDelete('products', id);
     showToast('제품이 삭제되었습니다.', 'success');
