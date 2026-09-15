@@ -540,15 +540,20 @@
 
 <!-- 항목 표 엑셀 붙여넣기 모달 (01~04 공용) -->
 <div id="paste-modal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 640px;">
+  <div class="modal-box" style="max-width: 900px;">
     <div class="p-5 border-b border-slate-100 flex items-center justify-between">
       <h3 class="font-bold text-slate-800" id="paste-modal-title">엑셀에서 붙여넣기</h3>
       <button onclick="closePasteModal()" class="btn-ghost btn text-slate-400"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="p-5 flex flex-col gap-3">
-      <p class="text-xs font-semibold text-slate-500" id="paste-modal-columns"></p>
-      <p class="text-xs text-slate-400">엑셀에서 표 범위를 드래그해 복사(Ctrl+C)한 뒤, 아래 칸을 클릭하고 붙여넣으세요(Ctrl+V). 위 열 순서와 같은 제목 행이 맨 위에 있으면 자동으로 건너뜁니다.</p>
-      <textarea id="paste-modal-area" class="input" rows="10" style="font-family: ui-monospace, monospace; resize:vertical;" placeholder="엑셀에서 복사한 내용을 여기에 붙여넣으세요"></textarea>
+      <p class="text-xs text-slate-400">아래는 실제 표와 같은 열 구성입니다. 원하는 열의 셀을 클릭한 뒤 엑셀에서 복사한 내용을 붙여넣으세요(Ctrl+V) — 컬럼 하나만 복사해 붙여넣으면 그 열에만 세로로 채워지고, 여러 열을 한 번에 복사해 붙여넣으면 클릭한 셀 기준으로 오른쪽·아래로 함께 채워집니다. 병합된 셀이 있는 범위는 컬럼이 밀릴 수 있으니 열 단위로 나눠 붙여넣는 것을 권장합니다. 셀을 직접 클릭해 값을 입력/수정할 수도 있습니다.</p>
+      <div class="table-wrap" style="max-height: 420px; overflow-y:auto;">
+        <table class="data-table compact-table" id="paste-grid-table">
+          <thead><tr id="paste-grid-head-row"></tr></thead>
+          <tbody id="paste-grid-body"></tbody>
+        </table>
+      </div>
+      <button type="button" onclick="addPasteGridRow()" class="btn btn-secondary text-xs py-2" style="align-self:flex-start;"><i class="fa-solid fa-plus"></i> 행 추가</button>
     </div>
     <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
       <button onclick="closePasteModal()" class="btn btn-secondary">취소</button>
