@@ -975,70 +975,72 @@ function initResizableColumns(tableId) {
 }
 
 /* ---------------- 항목 표 엑셀 붙여넣기로 일괄 추가 ----------------
-   엑셀에서 여러 행을 복사(Ctrl+C)해 붙여넣기 칸에 붙여넣으면(Ctrl+V)
-   탭으로 구분된 열을 파싱해 해당 표에 한 번에 추가합니다. 제목 행이
-   섞여 있으면 자동으로 건너뛰고, 항목명이 빈 행은 무시합니다. */
+   실제 표와 동일한 열 구성의 작은 편집 표(그리드)를 보여주고, 그리드의
+   특정 셀에 포커스를 둔 채 엑셀에서 복사한 내용을 붙여넣으면(Ctrl+V)
+   그 셀을 기준으로 오른쪽·아래로 채워 넣습니다. 컬럼 하나만 복사해
+   붙여넣으면 탭 구분자가 아예 없으므로, 엑셀의 병합된 셀 때문에 열이
+   밀리는 문제 없이 그 열에만 안전하게 채워집니다. */
 const PASTE_TABLE_CONFIG = {
   license: {
+    type: 'license',
     title: '01. S/W 라이선스',
-    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    fields: [
+      { key: 'name', label: '항목' },
+      { key: 'description', label: '설명' },
+      { key: 'classification', label: '구분' },
+      { key: 'quantity', label: '수량', numeric: true },
+      { key: 'list_price', label: '소비자단가', numeric: true },
+      { key: 'unit_price', label: '제안단가', numeric: true },
+      { key: 'remark', label: '비고' },
+    ],
     items: () => licenseItems, render: renderLicenseTable, prefix: 'lic',
-    build: (cells) => ({
-      product_id: '',
-      name: cells[0] || '',
-      description: cells[1] || '',
-      classification: cells[2] || '운영',
-      quantity: parsePastedNumber(cells[3]),
-      list_price: parsePastedNumber(cells[4]),
-      unit_price: parsePastedNumber(cells[5]),
-      remark: cells[6] || '',
-    }),
   },
   service: {
+    type: 'service',
     title: '02. 개발비',
-    columns: ['업무활동', '설명', '등급', '수량(인월)', '소비자단가', '제안단가', '비고'],
+    fields: [
+      { key: 'name', label: '업무활동' },
+      { key: 'description', label: '설명' },
+      { key: 'grade', label: '등급(특급/고급/중급/초급/-)' },
+      { key: 'quantity', label: '수량(인월)', numeric: true },
+      { key: 'list_price', label: '소비자단가', numeric: true },
+      { key: 'unit_price', label: '제안단가', numeric: true },
+      { key: 'remark', label: '비고' },
+    ],
     items: () => serviceItems, render: renderServiceTable, prefix: 'svc',
-    build: (cells) => ({
-      name: cells[0] || '',
-      description: cells[1] || '',
-      grade: normalizePastedGrade(cells[2]),
-      quantity: parsePastedNumber(cells[3]),
-      list_price: parsePastedNumber(cells[4]),
-      unit_price: parsePastedNumber(cells[5]),
-      remark: cells[6] || '',
-    }),
   },
   hardware: {
+    type: 'hardware',
     title: '03. 하드웨어',
-    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    fields: [
+      { key: 'name', label: '항목' },
+      { key: 'description', label: '설명' },
+      { key: 'classification', label: '구분' },
+      { key: 'quantity', label: '수량', numeric: true },
+      { key: 'list_price', label: '소비자단가', numeric: true },
+      { key: 'unit_price', label: '제안단가', numeric: true },
+      { key: 'remark', label: '비고' },
+    ],
     items: () => hardwareItems, render: renderHardwareTable, prefix: 'hw',
-    build: (cells) => ({
-      name: cells[0] || '',
-      description: cells[1] || '',
-      classification: cells[2] || '운영',
-      quantity: parsePastedNumber(cells[3]),
-      list_price: parsePastedNumber(cells[4]),
-      unit_price: parsePastedNumber(cells[5]),
-      remark: cells[6] || '',
-    }),
   },
   etc: {
+    type: 'etc',
     title: '04. 기타',
-    columns: ['항목', '설명', '구분', '수량', '소비자단가', '제안단가', '비고'],
+    fields: [
+      { key: 'name', label: '항목' },
+      { key: 'description', label: '설명' },
+      { key: 'classification', label: '구분' },
+      { key: 'quantity', label: '수량', numeric: true },
+      { key: 'list_price', label: '소비자단가', numeric: true },
+      { key: 'unit_price', label: '제안단가', numeric: true },
+      { key: 'remark', label: '비고' },
+    ],
     items: () => etcItems, render: renderEtcTable, prefix: 'etc',
-    build: (cells) => ({
-      name: cells[0] || '',
-      description: cells[1] || '',
-      classification: cells[2] || '운영',
-      quantity: parsePastedNumber(cells[3]),
-      list_price: parsePastedNumber(cells[4]),
-      unit_price: parsePastedNumber(cells[5]),
-      remark: cells[6] || '',
-    }),
   },
 };
 
 let pasteTargetType = null;
+let pasteGridRows = []; // 행 배열, 각 행은 fields와 같은 길이의 문자열 배열
 
 function parsePastedNumber(v) {
   return Number(String(v || '').replace(/[^0-9.-]/g, '')) || 0;
@@ -1049,42 +1051,121 @@ function normalizePastedGrade(v) {
   return ['특급', '고급', '중급', '초급', '-'].includes(g) ? g : '-';
 }
 
+function emptyPasteGridRow() {
+  return PASTE_TABLE_CONFIG[pasteTargetType].fields.map(() => '');
+}
+
 function openPasteModal(type) {
   const config = PASTE_TABLE_CONFIG[type];
   if (!config) return;
   pasteTargetType = type;
+  pasteGridRows = Array.from({ length: 6 }, emptyPasteGridRow);
   document.getElementById('paste-modal-title').textContent = `${config.title} - 엑셀에서 붙여넣기`;
-  document.getElementById('paste-modal-columns').textContent = `열 순서: ${config.columns.join(' / ')}`;
-  document.getElementById('paste-modal-area').value = '';
+  renderPasteGridHeader();
+  renderPasteGrid();
   document.getElementById('paste-modal').classList.remove('hidden');
 }
 
 function closePasteModal() {
   document.getElementById('paste-modal').classList.add('hidden');
   pasteTargetType = null;
+  pasteGridRows = [];
+}
+
+function renderPasteGridHeader() {
+  const config = PASTE_TABLE_CONFIG[pasteTargetType];
+  document.getElementById('paste-grid-head-row').innerHTML =
+    config.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('') + '<th style="width:1%"></th>';
+}
+
+function renderPasteGrid() {
+  const config = PASTE_TABLE_CONFIG[pasteTargetType];
+  document.getElementById('paste-grid-body').innerHTML = pasteGridRows.map((row, rIdx) => `
+    <tr>
+      ${config.fields.map((f, cIdx) => `<td><input type="text" class="input" value="${escapeAttr(row[cIdx] || '')}" onchange="updatePasteGridCell(${rIdx},${cIdx},this.value)" onpaste="onPasteGridPaste(event,${rIdx},${cIdx})"></td>`).join('')}
+      <td><button type="button" onclick="removePasteGridRow(${rIdx})" class="btn-ghost btn text-rose-500" style="padding:0.2rem 0.35rem;"><i class="fa-solid fa-trash"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+function updatePasteGridCell(rIdx, cIdx, value) {
+  if (!pasteGridRows[rIdx]) return;
+  pasteGridRows[rIdx][cIdx] = value;
+}
+
+function addPasteGridRow() {
+  pasteGridRows.push(emptyPasteGridRow());
+  renderPasteGrid();
+}
+
+function removePasteGridRow(rIdx) {
+  pasteGridRows.splice(rIdx, 1);
+  if (!pasteGridRows.length) pasteGridRows.push(emptyPasteGridRow());
+  renderPasteGrid();
+}
+
+// 클릭한 셀(rIdx, cIdx)을 기준으로 오른쪽·아래로 붙여넣은 내용을 채웁니다.
+// 컬럼 하나만 복사해 붙여넣으면 탭 구분자가 없으므로 그 열에만 세로로
+// 채워지고, 엑셀의 병합 셀로 인한 컬럼 밀림 문제가 생기지 않습니다.
+function onPasteGridPaste(e, rIdx, cIdx) {
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text) return;
+  e.preventDefault();
+
+  const config = PASTE_TABLE_CONFIG[pasteTargetType];
+  let lines = text.split(/\r\n|\r|\n/);
+  if (lines.length && lines[lines.length - 1] === '') lines.pop();
+  if (!lines.length) return;
+
+  // 맨 왼쪽 열부터 붙여넣었고 첫 줄이 열 제목과 같으면(엑셀에서 헤더까지
+  // 함께 복사한 경우) 자동으로 건너뜁니다.
+  if (cIdx === 0 && lines[0].split('\t')[0].trim() === config.fields[0].label) {
+    lines = lines.slice(1);
+  }
+  if (!lines.length) return;
+
+  while (pasteGridRows.length < rIdx + lines.length) {
+    pasteGridRows.push(emptyPasteGridRow());
+  }
+
+  lines.forEach((line, li) => {
+    const cells = line.split('\t');
+    cells.forEach((val, ci) => {
+      const targetCol = cIdx + ci;
+      if (targetCol < config.fields.length) {
+        pasteGridRows[rIdx + li][targetCol] = val.trim();
+      }
+    });
+  });
+
+  renderPasteGrid();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#paste-grid-body tr');
+    const cell = rows[rIdx] ? rows[rIdx].querySelectorAll('input')[cIdx] : null;
+    if (cell) cell.focus();
+  }, 0);
 }
 
 function confirmPasteAdd() {
   const config = PASTE_TABLE_CONFIG[pasteTargetType];
   if (!config) return;
 
-  let lines = document.getElementById('paste-modal-area').value.split(/\r\n|\r|\n/).filter(line => line.trim() !== '');
-  if (!lines.length) {
-    showToast('붙여넣을 데이터를 입력해주세요.', 'error');
-    return;
-  }
-
-  const firstCells = lines[0].split('\t').map(c => c.trim());
-  if (firstCells[0] === config.columns[0]) {
-    lines = lines.slice(1);
-  }
-
   const items = config.items();
   let added = 0;
-  lines.forEach(line => {
-    const cells = line.split('\t').map(c => c.trim());
-    if (!cells[0]) return;
-    const data = config.build(cells);
+  pasteGridRows.forEach(row => {
+    const name = (row[0] || '').trim();
+    if (!name) return;
+
+    const data = {};
+    config.fields.forEach((f, i) => {
+      const raw = (row[i] || '').trim();
+      if (f.numeric) data[f.key] = parsePastedNumber(raw);
+      else if (f.key === 'classification') data[f.key] = raw || '운영';
+      else if (f.key === 'grade') data[f.key] = normalizePastedGrade(raw);
+      else data[f.key] = raw;
+    });
+    if (config.type === 'license') data.product_id = '';
+
     items.push({
       id: uid(config.prefix),
       ...data,
@@ -1095,7 +1176,7 @@ function confirmPasteAdd() {
   });
 
   if (!added) {
-    showToast('붙여넣은 내용에서 유효한 행을 찾지 못했습니다.', 'error');
+    showToast('추가할 유효한 행이 없습니다. 항목명(업무활동명)을 입력하거나 붙여넣어주세요.', 'error');
     return;
   }
 
